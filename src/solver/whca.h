@@ -16,7 +16,7 @@ private:
   std::vector<CG*> CGOAL;  // goals that agents have already reached
 
   void init();
-  std::vector<Node*> getPath(Agent* a, int startTime, Paths& paths);
+  Nodes getPath(Agent* a, int startTime, Paths& paths);
 
 public:
   WHCA(Problem* _P);

@@ -48,7 +48,7 @@ bool WHCA::solve() {
 
   while (!P->isSolved()) {
     for (int i = 0; i < A.size(); ++i) {
-      std::vector<Node*> path = getPath(A[i], t, PATHS);
+      Nodes path = getPath(A[i], t, PATHS);
 
       // check whether success for computing path or not
       if (path.empty()) {
@@ -79,23 +79,26 @@ bool WHCA::solve() {
 
     if (failed) break;
 
-    formalizePath(PATHS);  // adjust path lengths
+    formalizePath(PATHS);
     limit = std::min(window, (int)PATHS[0].size() - t);
     for (int _t = 0; _t < limit; ++_t) {
       ++t;
       for (int i = 0; i < A.size(); ++i) A[i]->setNode(PATHS[i][t]);
       P->update();
       if (P->isSolved()) break;
+      if (P->getTimestep() >= P->getTimestepLimit()) break;
     }
+
+    if (P->getTimestep() >= P->getTimestepLimit()) break;
   }
 
   solveEnd();
   return !failed;
 }
 
-std::vector<Node*> WHCA::getPath(Agent* a, int startTime, Paths& paths) {
-  std::vector<Node*> path;
-  std::vector<Node*> C;
+Nodes WHCA::getPath(Agent* a, int startTime, Paths& paths) {
+  Nodes path;
+  Nodes C;
   Node* s = a->getNode();
   Node* g = a->getGoal();
   int f = 0;
@@ -105,7 +108,7 @@ std::vector<Node*> WHCA::getPath(Agent* a, int startTime, Paths& paths) {
   int maxLength = getMaxLengthPaths(paths);
 
   // fast implementation
-  std::vector<Node*> tmp = G->getPath(s, g);  // already known
+  Nodes tmp = G->getPath(s, g);  // already known
   if (hasWindow) {
     while (tmp.size() <= window) tmp.push_back(g);
   } else {

@@ -9,13 +9,13 @@
 #include "../util/util.h"
 
 
-IMAPF::IMAPF(Graph* _G, std::vector<Agent*> _A, int _taskLimit)
+IMAPF::IMAPF(Graph* _G, Agents _A, int _taskLimit)
   : Problem(_G, _A), taskLimit(_taskLimit)
 {
   init();
 }
 
-IMAPF::IMAPF(Graph* _G, std::vector<Agent*> _A, int _taskLimit, std::mt19937* _MT)
+IMAPF::IMAPF(Graph* _G, Agents _A, int _taskLimit, std::mt19937* _MT)
   : Problem(_G, _A, _MT), taskLimit(_taskLimit)
 {
   init();
@@ -25,7 +25,7 @@ IMAPF::~IMAPF() {}
 
 void IMAPF::init() {
   taskSum = 0;
-  taskSumStr = "0,";  // for accumulated sum
+  taskSumStr = "0,";
   nodes = G->getNodes();
 
   // initial allocation
@@ -36,7 +36,14 @@ void IMAPF::init() {
 }
 
 bool IMAPF::isSolved() {
-  return taskSum >= taskLimit;
+  if (taskSum < taskLimit) return false;
+  // check all tasks are completed or not
+  for (int i = 0; i < taskLimit; ++i) {
+    auto itr = std::find_if(T_CLOSE.begin(), T_CLOSE.end(),
+                            [i] (Task* tau) { return tau->getId() == i; });
+    if (itr == T_CLOSE.end()) return false;
+  }
+  return true;;
 }
 
 void IMAPF::update() {
@@ -67,31 +74,21 @@ void IMAPF::update() {
 }
 
 void IMAPF::allocate(Agent* a) {
-  Node *v, *u;
-  v = a->getNode();
-  do {
-    u = randomChoose(nodes, MT);
-  } while (v == u);
-  Task* tau = new Task(u, timestep);
+  Node* v = G->getNewGoal(a->getNode());
+  Task* tau = new Task(v, timestep);
   a->setTask(tau);
   a->setGoal(a->getTask()->getG()[0]);
   T_OPEN.push_back(tau);
 }
 
 std::string IMAPF::logStr() {
-  std::string str;
+  std::string str = Problem::logStr();
   str += "[problem] type:IMAPF\n";
   str += "[problem] agentnum:" + std::to_string(A.size()) + "\n";
   str += "[problem] tasknum:" + std::to_string(taskLimit) + "\n";
   str += "[problem] tasksum:" + taskSumStr + "\n";
-  str += G->logStr() + "\n";
-  for (auto tau : T_CLOSE) {
-    str += tau->logStr();
-    str += "\n";
-  }
-  for (auto a : A) {
-    str += a->logStr();
-  }
-  str += Problem::logStr();
+  str += G->logStr();
+  for (auto tau : T_CLOSE) str += tau->logStr();
+  for (auto a : A) str += a->logStr();
   return str;
 }

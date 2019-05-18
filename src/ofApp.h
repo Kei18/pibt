@@ -28,13 +28,14 @@ private:
 
   bool showicon;
   bool showgoal;
+  bool isDirect;
   bool autoplay;
   bool loop;
   bool snapshot;
 
-  std::vector<Node*> nodes;
-  std::vector<Node*> specials;
-  std::vector<Agent*> A;
+  Nodes nodes;
+  Nodes specials;
+  Agents A;
   ofTrueTypeFont font;
   bool fontOn;
   bool lineOn;

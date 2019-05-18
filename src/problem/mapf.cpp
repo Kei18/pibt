@@ -9,14 +9,14 @@
 #include "../util/util.h"
 
 MAPF::MAPF(Graph* _G,
-           std::vector<Agent*> _A,
+           Agents _A,
            std::vector<Task*> _T) : Problem(_G, _A, _T)
 {
   init();
 }
 
 MAPF::MAPF(Graph* _G,
-           std::vector<Agent*> _A,
+           Agents _A,
            std::vector<Task*> _T,
            std::mt19937* _MT) : Problem(_G, _A, _T, _MT)
 {
@@ -67,14 +67,11 @@ void MAPF::update() {
 }
 
 std::string MAPF::logStr() {
-  std::string str;
+  std::string str = Problem::logStr();
   str += "[problem] type:MAPF\n";
   str += "[problem] agentnum:" + std::to_string(A.size()) + "\n";
-  str += G->logStr() + "\n";
-  for (auto tau : T_CLOSE) {
-    str += tau->logStr();
-    str += "\n";
-  }
+  str += G->logStr();
+  for (auto tau : T_CLOSE) str += tau->logStr();
 
   int cnt;
   int pathsize;
@@ -90,6 +87,5 @@ std::string MAPF::logStr() {
     str += a->logStr();
     str += "size:" + std::to_string(pathsize) + "\n";
   }
-  str += Problem::logStr();
   return str;
 }

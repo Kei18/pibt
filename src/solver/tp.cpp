@@ -14,7 +14,7 @@
 #include "../util/util.h"
 
 
-TP::TP(Problem* _P, std::vector<Node*> _ep) : Solver(_P) {
+TP::TP(Problem* _P, Nodes _ep) : Solver(_P) {
   endpoints = _ep;
   init();
 }
@@ -52,6 +52,7 @@ bool TP::solve() {
     }
 
     P->update();
+    if (P->getTimestep() >= P->getTimestepLimit()) break;
   }
 
   solveEnd();
@@ -107,11 +108,11 @@ void TP::updatePath1(Agent* a, int startTime) {
   auto itr = std::find(A.begin(), A.end(), a);
   int i = std::distance(A.begin(), itr);
 
-  std::vector<Node*> gs = a->getTask()->getG();
+  Nodes gs = a->getTask()->getG();
   a->setGoal(gs[gs.size() - 1]);  // delivery point
 
-  std::vector<Node*> p;
-  std::vector<Node*> path = { a->getNode() };
+  Nodes p;
+  Nodes path = { a->getNode() };
 
   if (gs.size() == 2) {
     path = getPickDelivPath(a, a->getNode(), gs[0], gs[1], startTime, true);
@@ -123,7 +124,7 @@ void TP::updatePath1(Agent* a, int startTime) {
 }
 
 void TP::updatePath2(Agent* a, int startTime) {
-  std::vector<Node*> candidates;
+  Nodes candidates;
   std::vector<Task*> T = P->getT();
   bool contained;
 
@@ -134,8 +135,8 @@ void TP::updatePath2(Agent* a, int startTime) {
                                return tau->getG()[tau->getG().size() - 1] == v; });
     if (contained) continue;
     contained = std::any_of(paths.begin(), paths.end(),
-                            [v](std::vector<Node*> path)
-                            { return path[path.size() - 1] == v; });
+                            [v](Nodes path) {
+                              return path[path.size() - 1] == v; });
     if (contained) continue;
     candidates.push_back(v);
   }
@@ -153,7 +154,7 @@ void TP::updatePath2(Agent* a, int startTime) {
                                [u, _G](Node* v1, Node* v2) {
                                  return _G->dist(u, v1) < _G->dist(u, v2); });
   a->setGoal(*itr1);
-  std::vector<Node*> path = getPath(a, startTime);
+  Nodes path = getPath(a, startTime);
 
   if (path.empty()) {
     std::cout << "updatePath2, path is empty" << a->getId() << "\n";
@@ -168,7 +169,7 @@ void TP::updatePath2(Agent* a, int startTime) {
 
 std::vector<Task*> TP::getExecutableTask(Agent* a, int timestep) {
   std::vector<Task*> tasks;
-  std::vector<Node*> gs;
+  Nodes gs;
   bool notContained;
   Node* v = a->getNode();
   Node* u;
@@ -204,24 +205,24 @@ Task* TP::getNearestTask(Agent* a, std::vector<Task*>& tasks) {
   return *itr;
 }
 
-std::vector<Node*> TP::getPath(Agent* a, int startTime) {
+Nodes TP::getPath(Agent* a, int startTime) {
   return getPath(a, a->getNode(), a->getGoal(), startTime, true);
 }
 
-std::vector<Node*> TP::getPath(Agent* a,
-                               Node* s,
-                               Node* g,
-                               int startTime,
-                               bool futureCollision)
+Nodes TP::getPath(Agent* a,
+                  Node* s,
+                  Node* g,
+                  int startTime,
+                  bool futureCollision)
 {
-  std::vector<Node*> path;
-  std::vector<Node*> C;
+  Nodes path;
+  Nodes C;
   AN *l, *n;
   int t, f, cost;
   std::string key;
   bool prohibited, goalCheck;
 
-  std::vector<Node*> pathends;
+  Nodes pathends;
   Node* v;
   for (auto p : paths) {
     v = p[p.size() - 1];
@@ -237,6 +238,7 @@ std::vector<Node*> TP::getPath(Agent* a,
   table.emplace(key, l);
   OPEN = { key };
 
+  bool invalid = true;
   while (!OPEN.empty()) {
     // argmin
     auto itr1 = std::min_element(OPEN.begin(), OPEN.end(),
@@ -270,7 +272,10 @@ std::vector<Node*> TP::getPath(Agent* a,
         }
       }
 
-      if (goalCheck) break;
+      if (goalCheck) {
+        invalid = false;
+        break;
+      }
     }
 
     // update list
@@ -326,7 +331,7 @@ std::vector<Node*> TP::getPath(Agent* a,
   }
 
   // back tracking
-  if (n->v == g) {  // check failed or not
+  if (!invalid) {  // check failed or not
     while (n->p) {
       path.push_back(n->v);
       n = n->p;
@@ -347,21 +352,21 @@ struct AN2 {
   AN2* p;
 };
 
-std::vector<Node*> TP::getPickDelivPath(Agent* a,
-                                        Node* s,
-                                        Node* g1,
-                                        Node* g2,
-                                        int startTime,
-                                        bool futureCollision)
+Nodes TP::getPickDelivPath(Agent* a,
+                           Node* s,
+                           Node* g1,
+                           Node* g2,
+                           int startTime,
+                           bool futureCollision)
 {
-  std::vector<Node*> path;
-  std::vector<Node*> C;
+  Nodes path;
+  Nodes C;
   AN2 *l, *n;
   int t, f, cost;
   std::string key;
   bool prohibited, goalCheck;
 
-  std::vector<Node*> pathends;
+  Nodes pathends;
   Node* v;
   for (auto p : paths) {
     v = p[p.size() - 1];

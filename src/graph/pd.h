@@ -1,29 +1,39 @@
 #pragma once
-#include <vector>
-#include "grid.h"
+#include "simplegrid.h"
 
+/*
+ * graph representation
+ *
+ * p : pickup loc.
+ * d : devlivery loc.
+ * e : end point
+ * s : pickup and delivery loc.
+ * a : all
+ * @ : object
+ * T : object
+ */
 
-// map for Pickup and Delivery
-class PD : public Grid {
+class PD : public SimpleGrid {
 private:
   void init();
 
 protected:
-  std::string filename;
-  std::vector<Node*> pickup;     // pickup locatoins
-  std::vector<Node*> delivery;   // delivery locations
-  std::vector<Node*> endpoints;  // endpoints (for TP algorithm)
+  Nodes pickup;
+  Nodes delivery;
+  Nodes endpoints;
+
+  void setStartGoal();
 
 public:
   PD(std::string filename);
   PD(std::string filename, std::mt19937* _MT);
   ~PD();
 
-  std::vector<Node*> getPickup() { return pickup; }
-  std::vector<Node*> getDelivery() { return delivery; }
-  std::vector<Node*> getEndpoints() { return endpoints; }
-  std::vector<std::vector<Node*>> getStartGoal(int num);
-  std::vector<Node*> getAllSpecialPoints();
+  Nodes getPickup() { return pickup; }
+  Nodes getDelivery() { return delivery; }
+  Nodes getEndpoints() { return endpoints; }
+  Nodes getAllSpecialPoints();
+  Paths getStartGoal(int num);
 
   std::string logStr();
 };

@@ -14,18 +14,18 @@ protected:
   float w;  // sub-optimal factor
   std::unordered_map<int, int> table_fmin;  // record min of f-value
 
-  void init();
+  virtual void init();
   int h3(Paths &paths);
-  int h3(std::vector<Node*>& p1, Paths &paths);
-  bool solvePart(Paths& paths, Block& block);
-  void invoke(CTNode* node, Block& block);
-  std::vector<Node*> AstarSearch(Agent* a, CTNode* node);
-  std::vector<Node*> getPartialPath(AN* n);
+  int h3(Agent* a, Nodes& p1, Paths &paths);
+  bool solvePart(Paths& paths, Agents& block);
+  void invoke(CTNode* node, Agents& block);
+  virtual Nodes AstarSearch(Agent* a, CTNode* node);
+  Nodes getPartialPath(AN* n);
 
 public:
   ECBS(Problem* _P, float _w);
   ECBS(Problem* _P, float _w, bool _ID);
   ~ECBS();
 
-  std::string logStr();
+  virtual std::string logStr();
 };

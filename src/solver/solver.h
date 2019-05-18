@@ -8,10 +8,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-
-using Paths = std::vector<std::vector<Node*>>;
-
-struct AN {  // for A* search
+struct AN {
   Node* v;
   bool open;
   int t;
@@ -21,22 +18,23 @@ struct AN {  // for A* search
 
 class Solver {
 private:
-  double elapsedTime;  // runtime
+  double elapsedTime;
 
 protected:
   Problem* P;
   std::mt19937* MT;
 
-  std::vector<Agent*> A;
+  Agents A;
   Graph* G;
 
-  Eigen::MatrixXi dists;  // path dist
+  Eigen::MatrixXi dists;
 
   void init();
-  int getMaxLengthPaths(Paths& paths);  // get max length within paths
-  void formalizePath(Paths& paths);  // formalize paths with different lengths
+  int getMaxLengthPaths(Paths& paths);
+  void formalizePath(Paths& paths);
   int pathDist(Node* v, Node* u);
-  int pathDist(Node* s, Node* g, std::vector<Node*> &prohibited);  // with some prohibited nodes
+  int pathDist(Node* s, Node* g, Nodes &prohibited);
+  std::vector<Agents> findAgentBlock();
   static std::string getKey(int t, Node* v);
 
   virtual void solveStart();

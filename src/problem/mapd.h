@@ -4,8 +4,8 @@
 
 class MAPD : public Problem {
 private:
-  std::vector<Node*> pickupNodes;
-  std::vector<Node*> deliveryNodes;
+  Nodes pickupNodes;
+  Nodes deliveryNodes;
   int taskCnt;
   int taskNum;
   float taskFrequency;
@@ -18,22 +18,22 @@ private:
 
 public:
   MAPD(Graph* _G,
-       std::vector<Agent*> _A,
-       std::vector<Node*> pickupNodes,
-       std::vector<Node*> deliveryNodes,
+       Agents _A,
+       Nodes pickupNodes,
+       Nodes deliveryNodes,
        int taskNum, float taskFrequency);
   MAPD(Graph* _G,
-       std::vector<Agent*> _A,
+       Agents _A,
        std::vector<int> pickupNodes,
        std::vector<int> deliveryNodes,
        int taskNum, float taskFrequency);
   MAPD(Graph* _G,
-       std::vector<Agent*> _A,
-       std::vector<Node*> pickupNodes,
-       std::vector<Node*> deliveryNodes,
+       Agents _A,
+       Nodes pickupNodes,
+       Nodes deliveryNodes,
        int taskNum, float taskFrequency, std::mt19937* _MT);
   MAPD(Graph* _G,
-       std::vector<Agent*> _A,
+       Agents _A,
        std::vector<int> pickupNodes,
        std::vector<int> deliveryNodes,
        int taskNum, float taskFrequency, std::mt19937* _MT);

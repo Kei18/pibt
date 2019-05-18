@@ -23,14 +23,13 @@ Graph::Graph(std::mt19937* _MT) : MT(_MT) {
 }
 
 void Graph::init() {
-  regFlg = false;
+  directed = false;
+  regFlg = true;
 }
 
 Graph::~Graph() {
   for (auto v : nodes) delete v;
   nodes.clear();
-  for (auto row : adjMatrix) row.clear();
-  adjMatrix.clear();
   for (auto p : knownPaths) delete p.second;
   knownPaths.clear();
 }
@@ -58,66 +57,12 @@ int Graph::getNodeIndex(Node* v) {
   return v->getIndex();
 }
 
-void Graph::setObj(Node* v) {
-  objs.push_back(v->getId());
-
-  int index = getNodeIndex(v);
-  adjMatrix.erase(adjMatrix.begin() + index);
-
-  std::vector<int>* row;
-  for (int i = 0; i < adjMatrix.size(); ++i) {
-    row = &adjMatrix[i];
-    (*row).erase((*row).begin() + index);
-  }
-  nodes.erase(nodes.begin() + index);
-  delete v;
+Nodes Graph::neighbor(Node* v) {
+  return v->getNeighbor();
 }
 
-void Graph::setObj(int id) {
-  setObj(getNode(id));
-}
-
-void Graph::setObjs(std::vector<Node*> &objs) {
-  for (auto v : objs) setObj(v);
-}
-
-void Graph::setObjs(std::vector<int> &objs) {
-  for (auto v : objs) setObj(v);
-}
-
-std::vector<Node*> Graph::getNeighbor(Node* v) {
-  int nodesNum = getNodesNum();
-  int index = getNodeIndex(v);
-
-  std::vector<Node*> N;
-  for (int i = 0; i < nodesNum; ++i) {
-    if (adjMatrix[index][i] == 1) N.push_back(nodes[i]);
-  }
-  return N;
-}
-
-void Graph::initNodes() {
-  Node* v;
-  for (int i = 0; i < nodes.size(); ++i) {
-    v = nodes[i];
-    v->setIndex(i);
-  }
-}
-
-void Graph::setNeighbor() {
-  Node* v;
-  for (int i = 0; i < nodes.size(); ++i) {
-    v = nodes[i];
-    v->setNeighbor(getNeighbor(v));
-  }
-}
-
-std::vector<Node*> Graph::neighbor(Node* v) {
-  return v->getNeihbor();
-}
-
-std::vector<Node*> Graph::neighbor(int v) {
-  return getNode(v)->getNeihbor();
+Nodes Graph::neighbor(int i) {
+  return getNode(i)->getNeighbor();
 }
 
 struct AN {  // Astar Node
@@ -128,18 +73,16 @@ struct AN {  // Astar Node
   AN* p;
 };
 
-std::vector<Node*> Graph::getPath(Node* s, Node* g,
-                                  std::vector<Node*> &prohibitedNodes) {
+Nodes Graph::getPath(Node* s, Node* g, Nodes &prohibitedNodes) {
   return {};
 }
 
-// regFlg : whether register path or not
-std::vector<Node*> Graph::getPath(Node* _s, Node* _g,
-                                  std::vector<Node*> &prohibitedNodes,
-                                  int (*dist) (Node*, Node*))
+// regFlg : whether register
+Nodes Graph::getPath(Node* _s, Node* _g,
+                     Nodes &prohibitedNodes, int (*dist) (Node*, Node*))
 {
   bool prohibited = !prohibitedNodes.empty();
-  std::vector<Node*> path, C;
+  Nodes path, C;
   std::string key;
 
   // known path or not
@@ -184,7 +127,7 @@ std::vector<Node*> Graph::getPath(Node* _s, Node* _g,
     key = getKeyForKnownPath(n->v, _g);
     auto itrK = knownPaths.find(key);
     if (itrK != knownPaths.end()) {  // known
-      std::vector<Node*> kPath = itrK->second->path;
+      Nodes kPath = itrK->second->path;
       bool valid = true;
       if (prohibited) {
         for (auto v : kPath) {
@@ -201,7 +144,6 @@ std::vector<Node*> Graph::getPath(Node* _s, Node* _g,
         break;
       }
     }
-
 
     // update list
     n->open = false;
@@ -228,6 +170,11 @@ std::vector<Node*> Graph::getPath(Node* _s, Node* _g,
         auto itrK = knownPaths.find(key);
         if (itrK != knownPaths.end()) {
           f = n->cost + itrK->second->path.size() - 1;
+        } else if (prohibited) {
+          key = getKeyForKnownPath(m, _g);
+          if (itrK != knownPaths.end()) {
+            f = n->cost + itrK->second->path.size() - 1;
+          }
         }
       }
 
@@ -264,10 +211,10 @@ std::string Graph::getKeyForKnownPath(Node* s, Node* g) {
   return key;
 }
 
-void Graph::registerPath(const std::vector<Node*> &path) {
+void Graph::registerPath(const Nodes &path) {
   if (path.empty()) return;
 
-  std::vector<Node*> tmp = path;
+  Nodes tmp = path;
   std::string key;
 
   Node *v1, *v2;
@@ -281,29 +228,29 @@ void Graph::registerPath(const std::vector<Node*> &path) {
   } while (tmp.size() > 2);
 }
 
-std::vector<std::vector<Node*>> Graph::getStartGoal(int num) {
-  if (num > nodes.size()) {
+Paths Graph::getStartGoal(int num) {
+  if (num > starts.size() || num > goals.size()) {
     std::cout << "error@Graph::getStartGoal, over node size" << "\n";
     std::exit(1);
   }
 
-  std::vector<std::vector<Node*>> points;
-  std::vector<Node*> starts(nodes.size());
-  std::vector<Node*> goals(nodes.size());
+  Paths points;
+  Nodes ss(starts.size());
+  Nodes gs(goals.size());
   bool flg;
 
-  std::copy(nodes.begin(), nodes.end(), starts.begin());
-  std::copy(nodes.begin(), nodes.end(), goals.begin());
+  std::copy(starts.begin(), starts.end(), ss.begin());
+  std::copy(goals.begin(),  goals.end(), gs.begin());
 
   while (true) {
     points.clear();
-    std::shuffle(starts.begin(), starts.end(), *MT);
-    std::shuffle(goals.begin(), goals.end(), *MT);
+    std::shuffle(ss.begin(), ss.end(), *MT);
+    std::shuffle(gs.begin(), gs.end(), *MT);
 
     flg = true;
     for (int i = 0; i < num; ++i) {
-      if (starts[i] != goals[i]) {
-        points.push_back({ starts[i], goals[i] });
+      if (ss[i] != gs[i]) {
+        points.push_back({ ss[i], gs[i] });
       } else {
         flg = false;
         break;
@@ -314,13 +261,4 @@ std::vector<std::vector<Node*>> Graph::getStartGoal(int num) {
   }
 
   return points;
-}
-
-std::string Graph::logStr() {
-  std::string str;
-  str += "[graph] width:" + std::to_string(getW()) + "\n";
-  str += "[graph] height:" + std::to_string(getH()) + "\n";
-  str += "[graph] objs:";
-  for (auto i : objs) str += std::to_string(i) + ",";
-  return str;
 }

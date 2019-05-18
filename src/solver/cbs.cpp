@@ -9,6 +9,7 @@
  * Created by: Keisuke Okumura <okumura.k@coord.c.titech.ac.jp>
  */
 
+
 #include "cbs.h"
 #include <numeric>
 #include "../util/util.h"
@@ -31,7 +32,7 @@ bool CBS::solve() {
   solveStart();
 
   Paths PATHS;
-  std::vector<Block> WHOLE;
+  std::vector<Agents> WHOLE;
 
   // initialize
   for (int i = 0; i < A.size(); ++i) PATHS.push_back({});
@@ -52,7 +53,7 @@ bool CBS::solve() {
         }
       }
       formalizePath(PATHS);
-      if (checkBlocks(PATHS, WHOLE)) break;
+      if (checkAgents(PATHS, WHOLE)) break;
 
       // initialize
       PATHS.clear();
@@ -60,23 +61,23 @@ bool CBS::solve() {
     }
   }
 
-  // register path
   int maxLength = getMaxLengthPaths(PATHS);
   for (int t = 1; t < maxLength; ++t) {
     for (int i = 0; i < A.size(); ++i) A[i]->setNode(PATHS[i][t]);
     P->update();
+
+    if (P->getTimestep() >= P->getTimestepLimit()) break;
   }
 
   solveEnd();
   return true;
 }
 
-// for independent detection
-bool CBS::checkBlocks(Paths& paths, std::vector<Block>& whole) {
+bool CBS::checkAgents(Paths& paths, std::vector<Agents>& whole) {
   int maxLength = getMaxLengthPaths(paths);
-  std::vector<Block> OPEN = whole;
-  std::vector<Block> CLOSE, TMP;
-  Block block1, block2;
+  std::vector<Agents> OPEN = whole;
+  std::vector<Agents> CLOSE, TMP;
+  Agents block1, block2;
   int i, j;
   bool checkAll = true;
   bool checkPart, checkFrac;
@@ -128,14 +129,14 @@ bool CBS::checkBlocks(Paths& paths, std::vector<Block>& whole) {
     }
 
     if (!checkFrac) checkAll = false;
-    Block newBlock;
-    newBlock.insert(newBlock.end(), block1.begin(), block1.end());
+    Agents newAgents;
+    newAgents.insert(newAgents.end(), block1.begin(), block1.end());
     for (auto block2 : TMP) {
       openToClose(block2, OPEN, CLOSE);
-      newBlock.insert(newBlock.end(), block2.begin(), block2.end());
+      newAgents.insert(newAgents.end(), block2.begin(), block2.end());
     }
     TMP.clear();
-    whole.push_back(newBlock);
+    whole.push_back(newAgents);
   }
 
   OPEN.clear();
@@ -143,49 +144,53 @@ bool CBS::checkBlocks(Paths& paths, std::vector<Block>& whole) {
   return checkAll;
 }
 
-// main
-bool CBS::solvePart(Paths& paths, Block& block) {
+bool CBS::solvePart(Paths& paths, Agents& block) {
   CTNode* node;
   Constraints constraints;
-  std::vector<CTNode*> OPEN;
+  std::vector<CTNode*> OPEN, ALL;
   bool status = true;
 
   CTNode* root = new CTNode { {}, {}, 0, nullptr, true, {}, 0 };
   invoke(root, block);
   OPEN.push_back(root);
+  ALL.push_back(root);
   bool CAT = std::any_of(paths.begin(), paths.end(),
-                         [](std::vector<Node*> p) { return !p.empty(); });
+                         [](Nodes p) { return !p.empty(); });
 
-  bool invalid = true;
   while (!OPEN.empty()) {
     auto itr = std::min_element(OPEN.begin(), OPEN.end(),
                                 [CAT, this, &paths]
                                 (CTNode* n1, CTNode* n2) {
                                   if (CAT && n1->cost == n2->cost) {
-                                    return this->countCollisions(n1, paths)
-                                      < this->countCollisions(n2, paths);
+                                    int c1 = this->countCollisions(n1, paths);
+                                    int c2 = this->countCollisions(n2, paths);
+                                    return c1 < c2;
                                   }
                                   return n1->cost < n2->cost;
                                 });
     node = *itr;
     constraints = valid(node, block);
-    if (constraints.empty()) {
-      invalid = false;
-      break;
-    }
+    if (constraints.empty()) break;
     OPEN.erase(itr);
 
     for (auto constraint : constraints) {
       CTNode* newNode = new CTNode { constraint, node->paths,
                                      0, node, true,
                                      {}, 0 };
+
+      // it works, but it is late
+      // if (isDuplicatedCTNode(newNode, ALL)) continue;
+
       invoke(newNode, block);
-      if (newNode->valid) OPEN.push_back(newNode);
+      if (newNode->valid) {
+        OPEN.push_back(newNode);
+        ALL.push_back(newNode);
+      }
     }
     constraints.clear();
   }
 
-  if (!invalid) {  // sucssess
+  if (!OPEN.empty()) {  // sucssess
     for (int i = 0; i < paths.size(); ++i) {
       if (!node->paths[i].empty()) {
         paths[i] = node->paths[i];
@@ -204,7 +209,7 @@ int CBS::countCollisions(CTNode* c, Paths& paths) {
   for (auto p1 : paths) {
     if (p1.empty()) continue;
     for (auto p2 : c->paths) {
-      if (p2.empty()) continue;
+      if (p2.empty() || p1[0] == p2[0]) continue;
       for (int t = 0; t < p1.size(); ++t) {
         if (p2.size() < t) {
           if (p1[t] == p2[p2.size() - 1]) ++collision;
@@ -225,9 +230,9 @@ int CBS::countCollisions(CTNode* c, Paths& paths) {
   return collision;
 }
 
-void CBS::invoke(CTNode* node, Block& block) {
+void CBS::invoke(CTNode* node, Agents& block) {
   // calc path
-  if (node->c.empty()) {  // initial
+  if (node->c.empty()) {  // initail
     Paths paths;
     for (int i = 0; i < A.size(); ++i) paths.push_back({});
     for (auto a : block) {
@@ -253,13 +258,13 @@ void CBS::invoke(CTNode* node, Block& block) {
   }
   if (!node->valid) return;
   calcCost(node, block);
-  formalizePathBlock(node, block);
+  formalizePathAgents(node, block);
 }
 
-void CBS::calcCost(CTNode* node, Block& block) {
+void CBS::calcCost(CTNode* node, Agents& block) {
   int cost = 0;
   Node* g;
-  std::vector<Node*> path;
+  Nodes path;
   for (auto a : block) {
     auto itr1 = std::find_if(A.begin(), A.end(),
                             [a](Agent* b) { return a == b; });
@@ -272,10 +277,10 @@ void CBS::calcCost(CTNode* node, Block& block) {
   node->cost = cost;
 }
 
-Constraints CBS::valid(CTNode* node, Block& block) {
+Constraints CBS::valid(CTNode* node, Agents& block) {
   Paths paths = node->paths;
   int maxLength = getMaxLengthPaths(node->paths);
-  Constraints constraints;
+  Constraints constraints = {};
   std::vector<int> ids;
   Node* v;
   Agent *a, *b;
@@ -306,7 +311,8 @@ Constraints CBS::valid(CTNode* node, Block& block) {
           Constraint constraint;
           for (int l = 0; l < ids.size(); ++l) {
             if (k == l) continue;
-            Conflict* c = new Conflict { A[ids[l]], t, v };
+            Conflict* c = new Conflict { A[ids[l]], t, v, v, true, "" };
+            setCKey(c);
             constraint.push_back(c);
           }
           constraints.push_back(constraint);
@@ -318,27 +324,27 @@ Constraints CBS::valid(CTNode* node, Block& block) {
       if (t == 0) continue;
       auto itr3 = paths.begin() + i;
       auto itr4 = std::find_if(itr3 + 1, paths.end(),
-                               [t, itr3](std::vector<Node*> path) {
+                               [t, itr3](Nodes path) {
                                  if (path.empty()) return false;
                                  return (path[t] == (*itr3)[t-1])
                                    && (path[t-1] == (*itr3)[t]); });
       if (itr4 != paths.end()) {  // detect intersection
 
-        Constraint knownConstraint = getConstraitns(node);
+        Constraint knownConstraint = getConstraints(node);
 
         j = std::distance(paths.begin(), itr4);
-        Conflict* c1 = new Conflict { A[i], t, (*itr3)[t] };
-        Conflict* c2 = new Conflict { A[j], t, (*itr4)[t] };
+        Conflict* c1 = new Conflict { A[i], t, (*itr3)[t], (*itr3)[t-1], false, "" };
+        Conflict* c2 = new Conflict { A[j], t, (*itr4)[t], (*itr4)[t-1], false, "" };
+        setCKey(c1);
+        setCKey(c2);
 
         // checking duplication
-        if (!isDuplicatedConflict(knownConstraint, c1)) constraints.push_back({ c1 });
-        if (!isDuplicatedConflict(knownConstraint, c2)) constraints.push_back({ c2 });
-
-        if (t == 1) return constraints;
-        Conflict* c3 = new Conflict { A[i], t-1, (*itr3)[t-1] };
-        Conflict* c4 = new Conflict { A[j], t-1, (*itr4)[t-1] };
-        if (!isDuplicatedConflict(knownConstraint, c3)) constraints.push_back({ c3 });
-        if (!isDuplicatedConflict(knownConstraint, c4)) constraints.push_back({ c4 });
+        if (!isDuplicatedConflict(knownConstraint, c1)) {
+          constraints.push_back({ c1 });
+        }
+        if (!isDuplicatedConflict(knownConstraint, c2)) {
+          constraints.push_back({ c2 });
+        }
         return constraints;
       }
     }
@@ -347,7 +353,7 @@ Constraints CBS::valid(CTNode* node, Block& block) {
   return constraints;
 }
 
-void CBS::formalizePathBlock(CTNode* node, Block& block) {
+void CBS::formalizePathAgents(CTNode* node, Agents& block) {
   int maxLength = getMaxLengthPaths(node->paths);
   Node* g;
   int i;
@@ -360,19 +366,40 @@ void CBS::formalizePathBlock(CTNode* node, Block& block) {
   }
 }
 
-// low-level search
-std::vector<Node*> CBS::AstarSearch(Agent* a, CTNode* node) {
-  std::vector<Conflict*> constraints = getConstraitnsForAgent(node, a);
+Nodes CBS::AstarSearch(Agent* a, CTNode* node) {
+  Constraint constraints = getConstraintsForAgent(node, a);
 
-  std::vector<Node*> path;  // return
+  Nodes path, tmpPath;  // return
   Node* s = a->getNode();
   Node* g = a->getGoal();
 
-  if (constraints.empty()) return G->getPath(s, g);
+  // fast implementation
+  std::string cKey = getCKey(s, g, constraints);
+  auto itrK = knownPaths.find(cKey);
+  if (itrK != knownPaths.end()) {
+    path = itrK->second;
+    if (path.empty()) node->valid = false;
+    return path;
+  }
+  std::string dKey = cKey;  // previously computed path
+  if (!constraints.empty()) {
+    while (*(dKey.end()-1) != '-') dKey.erase(dKey.end()-1);
+    dKey.erase(dKey.end()-1);
+  }
+  Nodes dPath;
+  itrK = knownPaths.find(dKey);
+  if (itrK != knownPaths.end()) {
+    dPath = itrK->second;
+  }
+
+  // fast implementation
+  tmpPath = G->getPath(s, g);
+  if (constraints.empty()) return tmpPath;
+  tmpPath.clear();
 
   int t = 0;
-  std::vector<Node*> C;  // candidates
   int f = 0;
+  Nodes C;  // candidates
   std::string key;
   AN *l, *n;
   std::unordered_set<std::string> OPEN;
@@ -383,7 +410,7 @@ std::vector<Node*> CBS::AstarSearch(Agent* a, CTNode* node) {
   table.emplace(key, l);
   OPEN = { key };
 
-  bool invalid = true;
+  bool invalid = true;  // success or not
   while (!OPEN.empty()) {
     // argmin
     auto itr1 = std::min_element(OPEN.begin(), OPEN.end(),
@@ -401,8 +428,34 @@ std::vector<Node*> CBS::AstarSearch(Agent* a, CTNode* node) {
     if (n->v == g) {
       auto check = std::find_if(constraints.begin(), constraints.end(),
                                 [n] (Conflict* c) {
-                                  return (c->v == n->v) && (c->t >= n->t); });
+                                  return c->onNode
+                                    && (c->v == n->v)
+                                    && (c->t >= n->t); });
       if (check == constraints.end()) {
+        invalid = false;
+        break;
+      }
+    }
+
+    // fast implementation
+    tmpPath = G->getPath(n->v, g);
+    if (validShorcut(a, n, g, constraints, tmpPath)) {
+      for (int i = 1; i < tmpPath.size(); ++i) {
+        n = new AN { tmpPath[i], false, 0, 0, n };
+      }
+      invalid = false;
+      break;
+    }
+    tmpPath.clear();
+
+    // encount previously explored path
+    if (!dPath.empty() && n->t <= dPath.size() - 1 && n->v == dPath[n->t]) {
+      tmpPath = dPath;
+      for (int i = 0; i < n->t; ++i) tmpPath.erase(tmpPath.begin());
+      if (validShorcut(a, n, g, constraints, tmpPath)) {
+        for (int i = 1; i < tmpPath.size(); ++i) {
+          n = new AN { tmpPath[i], false, 0, 0, n };
+        }
         invalid = false;
         break;
       }
@@ -419,10 +472,14 @@ std::vector<Node*> CBS::AstarSearch(Agent* a, CTNode* node) {
     for (auto m : C) {
       // check constraints
       t = n->t + 1;
+      // invalid or not
       auto constraint = std::find_if(constraints.begin(), constraints.end(),
-                                     [a, t, m](Conflict* c) {
-                                       return (c->a == a)
-                                         && (c->t == t) && (c->v == m); });
+                                     [a, t, m, n](Conflict* c) {
+                                       if (c->a != a) return false;
+                                       if (c->t != t) return false;
+                                       if (c->onNode) return c->v == m;
+                                       return c->v == m && c->u == n->v;
+                                     });
       if (constraint != constraints.end()) continue;
 
       key = getKey(t, m);
@@ -455,12 +512,13 @@ std::vector<Node*> CBS::AstarSearch(Agent* a, CTNode* node) {
   } else {
     node->valid = false;
   }
+  knownPaths.emplace(cKey, path);
 
   return path;
 }
 
-std::vector<Conflict*> CBS::getConstraitns(CTNode* ctNode) {
-  std::vector<Conflict*> constraints;
+Constraint CBS::getConstraints(CTNode* ctNode) {
+  Constraint constraints = {};
   if (ctNode->p == nullptr) return constraints;  // root
   while (ctNode->p != nullptr) {
     for (auto c : ctNode->c) constraints.push_back(c);
@@ -469,8 +527,8 @@ std::vector<Conflict*> CBS::getConstraitns(CTNode* ctNode) {
   return constraints;
 }
 
-std::vector<Conflict*> CBS::getConstraitnsForAgent(CTNode* ctNode, Agent* a) {
-  std::vector<Conflict*> constraints;
+Constraint CBS::getConstraintsForAgent(CTNode* ctNode, Agent* a) {
+  Constraint constraints;
   if (ctNode->p == nullptr) return constraints;  // root
   while (ctNode->p != nullptr) {
     for (auto c : ctNode->c) {
@@ -484,15 +542,110 @@ std::vector<Conflict*> CBS::getConstraitnsForAgent(CTNode* ctNode, Agent* a) {
 bool CBS::isDuplicatedConflict(Constraint &constraint, Conflict* c) {
   auto itr = std::find_if(constraint.begin(), constraint.end(),
                           [c] (Conflict* d)
-                                { return c->a == d->a
-                                    && c->t == d->t
-                                    && c->v == d->v ; });
+                          { if (c->onNode != d->onNode) return false;
+                            if (c->a != d->a) return false;
+                            if (c->onNode && d->onNode) {
+                              return c->t == d->t && c->v == d->v;
+                            }
+                            return c->t == d->t
+                                && c->v == d->v
+                                && c->u == d->u;
+                          });
   return itr != constraint.end();
+}
+
+bool CBS::isDuplicatedConflict(Conflict* c1, Conflict* c2) {
+  if (c1->a != c2->a) return false;
+  if (c1->t != c2->t) return false;
+  if (c1->v != c2->v) return false;
+  if (c1->onNode != c2->onNode) return false;
+  if (!c1->onNode && c1->u != c2->u) return false;
+  return true;
+}
+
+bool CBS::isDuplicatedCTNode(CTNode* newCT, std::vector<CTNode*> &cts) {
+  Constraint newC = getConstraints(newCT);
+  std::sort(newC.begin(), newC.end(), [] (Conflict* c1, Conflict* c2)
+                                      { if (c1->t != c2->t) return c1->t < c2->t;
+                                        if (c1->a != c2->a) return c1->a->getId() < c2->a->getId();
+                                        if (c1->onNode != c2->onNode) return c1->onNode;
+                                        if (c1->v != c2->v) return c1->v->getId() < c2->v->getId();
+                                        if (c1->u != c2->u) return c1->u->getId() < c2->u->getId();
+                                        return true;
+                                      });
+  bool duplicated;
+  Constraint oldC;
+  for (auto ct : cts) {
+    oldC = getConstraints(ct);
+    if (newC.size() != oldC.size()) continue;
+    std::sort(oldC.begin(), oldC.end(), [] (Conflict* c1, Conflict* c2)
+                                        { if (c1->t != c2->t) return c1->t < c2->t;
+                                          if (c1->a != c2->a) return c1->a->getId() < c2->a->getId();
+                                          if (c1->onNode != c2->onNode) return c1->onNode;
+                                          if (c1->v != c2->v) return c1->v->getId() < c2->v->getId();
+                                          if (c1->u != c2->u) return c1->u->getId() < c2->u->getId();
+                                          return true;
+                                        });
+    duplicated = true;
+    for (int i = 0; i < newC.size(); ++i) {
+      if (!isDuplicatedConflict(newC[i], oldC[i])) {
+        duplicated = false;
+        break;
+      }
+    }
+    if (duplicated) return true;
+  }
+  return false;
+}
+
+bool CBS::validShorcut(Agent* a, AN* n, Node* g,
+                       Constraint &constraints,
+                       Nodes &tmpPath) {
+  auto itrC = std::find_if(constraints.begin(), constraints.end(),
+                           [a, n, g, &tmpPath] (Conflict* c) {
+                             if (c->a != a) return false;
+                             if (c->t < n->t) return false;
+                             if (c->onNode) {
+                               if (c->t > tmpPath.size() + n->t - 1) {
+                                 if (c->v == g) return true;
+                               } else {
+                                 if (c->v == tmpPath[c->t - n->t]) return true;
+                               }
+                             } else {
+                               if (c->t <= 0
+                                   || c->t > tmpPath.size() + n->t) return false;
+                               if (c->v == tmpPath[c->t - n->t]
+                                   && c->u == tmpPath[c->t - n->t - 1])
+                                 return true;
+                             }
+                             return false;
+                           });
+  return itrC == constraints.end();
+}
+
+std::string CBS::getCKey(Node* s, Node* g, Constraint &constraints) {
+  std::string key = std::to_string(s->getId()) + "-" + std::to_string(g->getId());
+  for (auto c : constraints) {
+    key += "-" + c->key;
+  }
+  return key;
+}
+
+void CBS::setCKey(Conflict* c) {
+  std::string key = std::to_string(c->a->getId()) + "_";
+  key += std::to_string(c->t) + "_";
+  if (c->onNode) {
+    key += std::to_string(c->v->getId());
+  } else {
+    key += std::to_string(c->v->getId()) + "_" + std::to_string(c->u->getId());
+  }
+  c->key = key;
 }
 
 std::string CBS::logStr() {
   std::string str;
   str += "[solver] type:CBS\n";
+  str += "[solver] ID:" + std::to_string(ID) + "\n";
   str += Solver::logStr();
   return str;
 }

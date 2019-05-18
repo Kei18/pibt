@@ -61,6 +61,7 @@ ofApp::ofApp(Problem* _P) : P(_P) {
   GOALRAD  = std::max((float)SCALE/4.0, 2.0);
   FONTSIZE = std::max(SCALE/8, 6);
   TRIANGLESIZE = std::max(SCALE/15, 2);
+  isDirect = P->getG()->isDirected();
 
   // set images
   showicon = P->visual_showicon;
@@ -81,7 +82,7 @@ ofApp::ofApp(Problem* _P) : P(_P) {
 
   fontOn = false;
   lineOn = false;
-  edgeOn = false;
+  edgeOn = isDirect;
   sushiOn = false;
 
   autoplay = false;
@@ -90,7 +91,7 @@ ofApp::ofApp(Problem* _P) : P(_P) {
 
   nodes = P->getG()->getNodes();
   specials = P->getG()->getPickup();
-  std::vector<Node*> delivery = P->getG()->getDelivery();
+  Nodes delivery = P->getG()->getDelivery();
   for (auto v : delivery) {
     if (!inArray(v, specials)) specials.push_back(v);
   }
@@ -138,7 +139,7 @@ void ofApp::draw() {
   int t1, t2;
   float x, y, p, q;
   int colors = AGENTCOLORS.size();
-  std::vector<Node*> neighbor;
+  Nodes neighbor;
 
   // draw nodes
   ofSetLineWidth(1);
@@ -165,7 +166,7 @@ void ofApp::draw() {
     ofSetColor(EDGECOLOR);
     for (auto v : nodes) {
       pos1 = v->getPos() * SCALE;
-      neighbor = v->getNeihbor();
+      neighbor = v->getNeighbor();
       x = pos1.x + WINDOW_X_BUFFER + SCALE/2;
       y = pos1.y + WINDOW_Y_TOP_BUFFER + SCALE/2;
       for (auto u : neighbor) {
@@ -173,6 +174,7 @@ void ofApp::draw() {
         p = pos2.x + WINDOW_X_BUFFER + SCALE/2;
         q = pos2.y + WINDOW_Y_TOP_BUFFER + SCALE/2;
         ofDrawLine(x, y, p, q);
+        if (!isDirect) continue;
         p = (p + x) / 2;
         q = (q + y) / 2;
         if (x != p) {

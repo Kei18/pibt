@@ -1,3 +1,4 @@
+#include "dummy.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -8,9 +9,9 @@
 
 #include "util/param.h"
 #include "util/util.h"
-#include "graph/grid.h"
-#include "graph/dao.h"
+#include "graph/simplegrid.h"
 #include "graph/pd.h"
+#include "graph/station.h"
 
 #include "agent/agent.h"
 #include "task/task.h"
@@ -19,8 +20,10 @@
 #include "problem/imapf.h"
 
 #include "solver/pibt.h"
+#include "solver/winpibt.h"
 #include "solver/cbs.h"
 #include "solver/ecbs.h"
+#include "solver/iecbs.h"
 #include "solver/whca.h"
 #include "solver/hca.h"
 #include "solver/tp.h"
@@ -31,8 +34,11 @@ static void setCurrentTime(std::string &str);  // for log filename
 
 Problem* run(int argc, char *argv[])
 {
-
   std::string configfile;
+
+#ifdef OF
+  std::cout << "reading params" << "\n";
+#endif
 
   /************************
    * set args
@@ -60,6 +66,7 @@ Problem* run(int argc, char *argv[])
      Param::S_PIBT,    // solver type
      "./map/5x5.map",  // field type
      3,                // agent number
+     10000,            // timesteplimit
      10,               // task number
      0.1,              // task frequency
      0,                // seed
@@ -70,9 +77,10 @@ Problem* run(int argc, char *argv[])
   Param::SolverConfig* solverConfig = new Param::SolverConfig
     {
      false,  // WarshallFloyd
-     true,   // CBS, ECBS, independet detection
-     5,      // WHCA*, window size
-     1.5     // ECBS, suboptimal param
+     true,   // CBS, ECBS, iECBS, independet operater
+     5,      // WHCA* or winPIBT, window size
+     1.5,    // ECBS or iECBS, suboptimal param
+     true,   // winPIBT, softmode
     };
   Param::VisualConfig* visualConfig = new Param::VisualConfig
     {
@@ -84,6 +92,12 @@ Problem* run(int argc, char *argv[])
    * load setting
    ************************/
   setParams(configfile, envConfig, solverConfig, visualConfig);
+
+#ifdef OF
+  std::cout << "done." << "\n";
+  std::cout << "loading map : " << envConfig->field << "\n";
+#endif
+
 
   /************************
    * set seed
@@ -97,12 +111,14 @@ Problem* run(int argc, char *argv[])
    * graph definition
    ************************/
   Graph* G = nullptr;
-  if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPF) {
-    G = new DAO(envConfig->field, MT_PG);
+  if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPF ||
+      envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF) {
+    G = new SimpleGrid(envConfig->field, MT_PG);
   } else if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPD) {
     G = new PD(envConfig->field, MT_PG);
-  } else if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF) {
-    G = new DAO(envConfig->field, MT_PG);
+  } else if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPF_STATION ||
+             envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF_STATION) {
+    G = new Station(envConfig->field, MT_PG);
   } else {
     std::cout << "error@run, problem is not defined" << "\n";
     std::exit(1);
@@ -111,7 +127,7 @@ Problem* run(int argc, char *argv[])
   /************************
    * agent definition
    ************************/
-  std::vector<Agent*> A;
+  Agents A;
   auto points = G->getStartGoal(envConfig->agentnum);
   for (int i = 0; i < envConfig->agentnum; ++i) {
     Agent* a = new Agent(points[i][0]);
@@ -122,7 +138,8 @@ Problem* run(int argc, char *argv[])
    * problem definition
    ************************/
   Problem* P = nullptr;
-  if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPF) {
+  if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPF ||
+      envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPF_STATION) {
     std::vector<Task*> T;
     for (int i = 0; i < envConfig->agentnum; ++i) {
       Task* tau = new Task(points[i][1]);
@@ -132,12 +149,15 @@ Problem* run(int argc, char *argv[])
   } else if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPD) {
     P = new MAPD(G, A, G->getPickup(), G->getDelivery(),
                  envConfig->tasknum, envConfig->taskfrequency, MT_PG);
-  } else if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF) {
+  } else if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF ||
+             envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF_STATION) {
     P = new IMAPF(G, A, envConfig->tasknum, MT_PG);
   } else {
     std::cout << "error@run, problem is not defined" << "\n";
     std::exit(1);
   }
+  // set timestep limit
+  P->setTimestepLimit(envConfig->timesteplimit);
 
   /************************
    * solver definition
@@ -145,42 +165,59 @@ Problem* run(int argc, char *argv[])
   Solver* solver = nullptr;
   switch (envConfig->STYPE) {
   case Param::SOLVER_TYPE::S_CBS:
-    if (envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF) {
+    if (envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF &&
+        envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF_STATION) {
       std::cout << "error@run, CBS cannot solve except MAPF" << "\n";
       std::exit(1);
     }
     solver = new CBS(P, solverConfig->ID);
     break;
   case Param::SOLVER_TYPE::S_ECBS:
-    if (envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF) {
+    if (envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF &&
+        envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF_STATION) {
       std::cout << "error@run, ECBS cannot solve except MAPF" << "\n";
       std::exit(1);
     }
     solver = new ECBS(P, solverConfig->suboptimal, solverConfig->ID);
     break;
+  case Param::SOLVER_TYPE::S_iECBS:
+    if (envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF &&
+        envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF_STATION) {
+      std::cout << "error@run, iECBS cannot solve except MAPF" << "\n";
+      std::exit(1);
+    }
+    solver = new iECBS(P, solverConfig->suboptimal, solverConfig->ID);
+    break;
   case Param::SOLVER_TYPE::S_WHCA:
-    if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPD) {
-      std::cout << "error@run, WHCA cannot solve MAPD" << "\n";
+    if (envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF &&
+        envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF_STATION) {
+      std::cout << "error@run, WHCA cannot solve except MAPF" << "\n";
       std::exit(1);
     }
     solver = new WHCA(P, solverConfig->window);
     break;
   case Param::SOLVER_TYPE::S_HCA:
-    if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPD) {
-      std::cout << "error@run, HCA cannot solve MAPD" << "\n";
+    if (envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF &&
+        envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF_STATION) {
+      std::cout << "error@run, HCA cannot solve except MAPF" << "\n";
       std::exit(1);
     }
     solver = new HCA(P);
     break;
   case Param::SOLVER_TYPE::S_PPS:
-    if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPD) {
-      std::cout << "error@run, PPS cannot solve MAPD" << "\n";
+    if (envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF &&
+        envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPF_STATION) {
+      std::cout << "error@run, PPS cannot solve except MAPF" << "\n";
       std::exit(1);
     }
     solver = new PPS(P);
     break;
   case Param::SOLVER_TYPE::S_PIBT:
     solver = new PIBT(P, MT_S);
+    break;
+  case Param::SOLVER_TYPE::S_winPIBT:
+    solver = new winPIBT(P, solverConfig->window,
+                         solverConfig->softmode, MT_S);
     break;
   case Param::SOLVER_TYPE::S_TP:
     if (envConfig->PTYPE != Param::PROBLEM_TYPE::P_MAPD) {
@@ -197,14 +234,31 @@ Problem* run(int argc, char *argv[])
 
   // precomputing distances
   if (solverConfig->WarshallFloyd) {
+#ifdef OF
+    std::cout << "start WarshallFloyd, "
+              << "it requires O(" << G->getNodesNum() << "^3) cost\n";
+#endif
+
     solver->WarshallFloyd();
+
+#ifdef OF
+    std::cout << "done." << "\n";
+#endif
   }
 
   /************************
    * start solving
    ************************/
-  std::cout << "start solving" << "\n\n";
+#ifdef OF
+  std::cout << "done." << "\n";
+  std::cout << "start solving the iterative MAPF problem" << "\n";
+#endif
+
   solver->solve();
+
+#ifdef OF
+  std::cout << "success to solve!" << "\n\n";
+#endif
 
   /************************
    * summarize results

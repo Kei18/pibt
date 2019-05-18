@@ -30,6 +30,8 @@ public:
 
   void addNode(Node* v) { G_OPEN.push_back(v); }
 
+  Node* getNext(Node* v);
+
   void update(Node* v);
 
   bool completed();

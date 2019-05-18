@@ -10,123 +10,118 @@
 #include "pd.h"
 #include "../util/util.h"
 
-PD::PD(std::string _filename, std::mt19937* _MT)
-  : Grid(_MT), filename(_filename)
-{
+PD::PD(std::string _filename) : SimpleGrid(_filename) {
   init();
 }
 
-PD::PD(std::string _filename) : filename(_filename) {
+PD::PD(std::string _filename, std::mt19937* _MT) : SimpleGrid(_filename, _MT) {
   init();
 }
+
+PD::~PD() {}
 
 void PD::init() {
-  std::ifstream file(filename);
+  std::string file_pd = filename + ".pd";  // pickup and delivery
+  std::ifstream file(file_pd);
   if (!file) {
     std::cout << "error@PD::init, file "
-              << filename
+              << file_pd
               << " does not exist" << "\n";
     std::exit(1);
   }
 
   std::string line;
   std::smatch results;
-  int w  = 0;
-  int h = 0;
-  bool mapStart = false;
+  int w = getW();
+  int h = getH();
+  int j = 0;  // height
+  int id = 0;
+  std::string s;
+  Node* v;
 
-  std::regex r_height = std::regex(R"(height\s(\d+))");
-  std::regex r_width = std::regex(R"(width\s(\d+))");
-  std::regex r_map = std::regex(R"(map)");
-
-  int j = 0;
-  int index = 0;
-  nodes.clear();
-  objs.clear();
-
-  // check
-  bool validP = false;
-  bool validD = false;
+  std::regex r_obj   = std::regex(R"([@T])");
+  std::regex r_pickup = std::regex(R"([psa])");  // pickup loc.
+  std::regex r_deliv  = std::regex(R"([dsa])");  // delivery loc.
+  std::regex r_end    = std::regex(R"([ea])");  // end loc.
 
   while (getline(file, line)) {
-    if (mapStart) {
-      for (int i = 0; i < w; ++i) {
-        index = j * w + i;
-        if (line[i] == 'T') {  // objs
-          objs.push_back(index);
-        } else {
-          Node* v = new Node(index);
-          v->setPos(i, j);
-          nodes.push_back(v);
+    // error check, width
+    if (line.size() != w) {
+      std::cout << "error@PD::init, "
+                << "width is invalid, should be " << w <<  "\n";
+      std::exit(1);
+    }
 
-          if (line[i] == 'P') {  // pickup loc.
-            pickup.push_back(v);
-            validP = true;
-          } else if (line[i] == 'D') {  // delivery loc.
-            delivery.push_back(v);
-            validD = true;
-          } else if (line[i] == 'E') {  // endpoint loc.
-            endpoints.push_back(v);
-          } else if (line[i] == 'S') {  // pickup and delivery loc.
-            pickup.push_back(v);
-            delivery.push_back(v);
-            validP = true;
-            validD = true;
-          } else if (line[i] == 'A') {  // pickup and delivery and endpoint loc.
-            endpoints.push_back(v);
-            pickup.push_back(v);
-            delivery.push_back(v);
-            validP = true;
-            validD = true;
-          }
-        }
+    for (int i = 0; i < w; ++i) {
+      s = line[i];
+      id = j * w + i;
+      if (std::regex_match(s, results, r_obj)) continue;
+
+      if (!existNode(id)) {
+        std::cout << "error@PD::init, "
+                  << "corresponding node does not exist, " << id << "\n";
+        std::exit(1);
       }
-      ++j;
-    }
+      v = getNode(id);  // target node
 
-    if (std::regex_match(line, results, r_height)) {
-      h = std::stoi(results[1].str());
+      if (std::regex_match(s, results, r_pickup)) {
+        pickup.push_back(v);
+      }
+      if (std::regex_match(s, results, r_pickup)) {
+        delivery.push_back(v);
+      }
+      if (std::regex_match(s, results, r_end)) {
+        endpoints.push_back(v);
+      }
     }
-
-    if (std::regex_match(line, results, r_width)) {
-      w = std::stoi(results[1].str());
-    }
-
-    if (std::regex_match(line, results, r_map)) {
-      mapStart = true;
-      setSize(w, h);
-    }
+    ++j;
   }
   file.close();
 
-  if (!validD || !validP) {
-    std::cout << "error@TP::init, file "
-              << filename
-              << " is not for MAPD" << "\n";
+  // height check
+  if (j != h) {
+    std::cout << "error@PD::init, "
+              << "height is invalid, shoudl be " << h <<  "\n";
     std::exit(1);
   }
 
-  initNodes();
+  if (pickup.empty() || delivery.empty() || endpoints.empty()) {
+    std::cout << "error@TP::init, file "
+              << file_pd << ".pd is not for MAPD, "
+              << "there is no pickup/delivery/end location" << "\n";
+    std::exit(1);
+  }
+
+  setStartGoal();
 }
 
-std::vector<std::vector<Node*>> PD::getStartGoal(int num) {
+void PD::setStartGoal() {
+  // initialization
+  starts.clear();
+  goals.clear();
+
+  // update starts
+  starts = endpoints;
+}
+
+Paths PD::getStartGoal(int num) {
   if (num > nodes.size()) {
-    std::cout << "error@PD::getStartGoal,over node size, "
+    std::cout << "error@PD::getStartGoal, over node size, "
               << num << "\n";
     std::exit(1);
   }
 
-  std::vector<std::vector<Node*>> points;
-  std::vector<Node*> ends(endpoints.size());
-  std::copy(endpoints.begin(), endpoints.end(), ends.begin());
+  Paths points;
+  Nodes ends(starts.size());
+  std::copy(starts.begin(), starts.end(), ends.begin());
   std::shuffle(ends.begin(), ends.end(), *MT);
   for (int i = 0; i < num; ++i) points.push_back({ ends[i] });
 
   return points;
 }
 
-std::vector<Node*> PD::getAllSpecialPoints() {
-  std::vector<Node*> points;
+Nodes PD::getAllSpecialPoints() {
+  Nodes points;
   for (auto v : pickup) {
     auto itr = std::find_if(points.begin(), points.end(),
                             [v](Node* u) { return v->getId() == u->getId(); });
@@ -145,18 +140,14 @@ std::vector<Node*> PD::getAllSpecialPoints() {
   return points;
 }
 
-PD::~PD() {}
-
 std::string PD::logStr() {
-  std::string str;
-  str += "[graph] file:" + filename + "\n";
-  str += Graph::logStr();
-  str += "\n";
+  std::string str = SimpleGrid::logStr();
   str += "[graph] pickup:";
   for (auto v : pickup) str += std::to_string(v->getId()) + ",";
   str += "\n[graph] delivery:";
   for (auto v : delivery) str += std::to_string(v->getId()) + ",";
   str += "\n[graph] endpoints:";
   for (auto v : endpoints) str += std::to_string(v->getId()) + ",";
+  str += "\n";
   return str;
 }

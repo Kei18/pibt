@@ -8,46 +8,33 @@
 #include "mapd.h"
 #include "../util/util.h"
 
-MAPD::MAPD(Graph* _G,
-           std::vector<Agent*> _A,
-           std::vector<Node*> _s,
-           std::vector<Node*> _g,
-           int _n, float _f) :
-  Problem(_G, _A), pickupNodes(_s), deliveryNodes(_g),
-  taskNum(_n), taskFrequency(_f)
+MAPD::MAPD(Graph* _G, Agents _A, Nodes _s, Nodes _g, int _n, float _f)
+  : Problem(_G, _A), pickupNodes(_s), deliveryNodes(_g), taskNum(_n), taskFrequency(_f)
 {
   init();
 }
 
-MAPD::MAPD(Graph* _G,
-           std::vector<Agent*> _A,
-           std::vector<int> _s,
-           std::vector<int> _g,
-           int _n, float _f) :
-  Problem(_G, _A), taskNum(_n), taskFrequency(_f)
+MAPD::MAPD(Graph* _G, Agents _A,
+           std::vector<int> _s, std::vector<int> _g,
+           int _n, float _f)
+  : Problem(_G, _A), taskNum(_n), taskFrequency(_f)
 {
   for (auto s : _s) pickupNodes.push_back(G->getNode(s));
   for (auto g : _g) deliveryNodes.push_back(G->getNode(g));
   init();
 }
 
-MAPD::MAPD(Graph* _G,
-           std::vector<Agent*> _A,
-           std::vector<Node*> _s,
-           std::vector<Node*> _g,
-           int _n, float _f, std::mt19937* _MT) :
-  Problem(_G, _A, _MT), pickupNodes(_s), deliveryNodes(_g),
+MAPD::MAPD(Graph* _G, Agents _A, Nodes _s, Nodes _g,
+           int _n, float _f, std::mt19937* _MT)
+  : Problem(_G, _A, _MT), pickupNodes(_s), deliveryNodes(_g),
   taskNum(_n), taskFrequency(_f)
 {
   init();
 }
 
-MAPD::MAPD(Graph* _G,
-           std::vector<Agent*> _A,
-           std::vector<int> _s,
-           std::vector<int> _g,
-           int _n, float _f, std::mt19937* _MT) :
-  Problem(_G, _A, _MT), taskNum(_n), taskFrequency(_f)
+MAPD::MAPD(Graph* _G, Agents _A, std::vector<int> _s, std::vector<int> _g,
+           int _n, float _f, std::mt19937* _MT)
+  : Problem(_G, _A, _MT), taskNum(_n), taskFrequency(_f)
 {
   for (auto s : _s) pickupNodes.push_back(G->getNode(s));
   for (auto g : _g) deliveryNodes.push_back(G->getNode(g));
@@ -115,6 +102,7 @@ void MAPD::updateStatus() {
   }
 }
 
+
 void MAPD::createTask() {
   if (taskCnt >= taskNum) return;
 
@@ -146,23 +134,14 @@ void MAPD::createTask() {
 
 std::string MAPD::logStr() {
   std::string str;
+  str += Problem::logStr();
   str += "[problem] type:MAPD\n";
   str += "[problem] agentnum:" + std::to_string(A.size()) + "\n";
   str += "[problem] tasknum:" + std::to_string(taskNum) + "\n";
   str += "[problem] frequency:" + std::to_string(taskFrequency) + "\n";
   str += G->logStr();
-  str += "\n";
-  for (auto tau : T_OPEN) {
-    str += tau->logStr();
-    str += "\n";
-  }
-  for (auto tau : T_CLOSE) {
-    str += tau->logStr();
-    str += "\n";
-  }
-  for (auto a : A) {
-    str += a->logStr();
-  }
-  str += Problem::logStr();
+  for (auto tau : T_OPEN) str += tau->logStr();
+  for (auto tau : T_CLOSE) str += tau->logStr();
+  for (auto a : A) str += a->logStr();
   return str;
 }

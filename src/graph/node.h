@@ -7,29 +7,27 @@
 
 class Node {
 private:
-  Vec2f pos;
-  const int id;  // notice: id is not index!
-  int index;
+  const int id;
+  const int index;
   std::vector<Node*> neighbor;
+  Vec2f pos;
 
-  static int cntId;  // for uuid
+  static int cntIndex;
 
 public:
   Node();
   Node(int _id);
   ~Node() {};
 
-  std::vector<Node*> getNeihbor() { return neighbor; }
+  std::vector<Node*> getNeighbor() { return neighbor; }
   void setNeighbor(std::vector<Node*> nodes) { neighbor = nodes; }
+
+  int getId() { return id; }
+  int getIndex() { return index; }
 
   Vec2f getPos() { return pos; }
   void  setPos(Vec2f _pos) { pos = _pos; }
   void  setPos(int x, int y) { pos = Vec2f(x, y); }
-
-  void setIndex(int i) { index = i; }
-  int getIndex() { return index; }
-
-  int getId() { return id; }
 
   bool operator==(Node* v) const { return v->getId() == id; };
   bool operator!=(Node* v) const { return v->getId() != id; };

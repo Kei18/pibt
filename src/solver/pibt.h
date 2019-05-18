@@ -14,26 +14,24 @@ protected:
   void allocate();
 
   void updatePriority();
-  std::vector<Node*> createCandidates(Agent* a, std::vector<Node*> CLOSE_NODE);
-  std::vector<Node*> createCandidates(Agent* a,
-                                      std::vector<Node*> CLOSE_NODE,
-                                      Node* tmp);
+  Nodes createCandidates(Agent* a, Nodes CLOSE_NODE);
+  Nodes createCandidates(Agent* a, Nodes CLOSE_NODE, Node* tmp);
   bool priorityInheritance(Agent* a,
-                           std::vector<Node*>& CLOSE_NODE,
-                           std::vector<Agent*>& OPEN_AGENT,
+                           Nodes& CLOSE_NODE,
+                           Agents& OPEN_AGENT,
                            std::vector<float>& PL);
   bool priorityInheritance(Agent* a,
                            Agent* aFrom,
-                           std::vector<Node*>& CLOSE_NODE,
-                           std::vector<Agent*>& OPEN_AGENT,
+                           Nodes& CLOSE_NODE,
+                           Agents& OPEN_AGENT,
                            std::vector<float>& PL);
-  bool priorityInheritance(Agent* a,
-                           std::vector<Node*> C,
-                           std::vector<Node*>& CLOSE_NODE,
-                           std::vector<Agent*>& OPEN_AGENT,
-                           std::vector<float>& PL);
-  Node* chooseNode(Agent* a, std::vector<Node*> C);
-  void updateC(std::vector<Node*>& C, Node* target, std::vector<Node*> CLOSE_NODE);
+  virtual bool priorityInheritance(Agent* a,
+                                   Nodes C,
+                                   Nodes& CLOSE_NODE,
+                                   Agents& OPEN_AGENT,
+                                   std::vector<float>& PL);
+  virtual Node* chooseNode(Agent* a, Nodes C);
+  void updateC(Nodes& C, Node* target, Nodes CLOSE_NODE);
 
   float getDensity(Agent* a);  // density can be used as effective prioritization
 
@@ -43,7 +41,7 @@ public:
   ~PIBT();
 
   bool solve();
-  void update();
+  virtual void update();
 
-  std::string logStr();
+  virtual std::string logStr();
 };

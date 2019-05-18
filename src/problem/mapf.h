@@ -8,10 +8,10 @@ private:
 
 public:
   MAPF(Graph* _G,
-       std::vector<Agent*> _A,
+       Agents _A,
        std::vector<Task*> _T);
   MAPF(Graph* _G,
-       std::vector<Agent*> _A,
+       Agents _A,
        std::vector<Task*> _T,
        std::mt19937* _MT);
   ~MAPF();

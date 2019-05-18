@@ -5,8 +5,8 @@
 class IMAPF : public Problem {
 private:
   int taskSum;
-  const int taskLimit;  // max count
-  std::vector<Node*> nodes;
+  const int taskLimit;
+  Nodes nodes;
 
   std::string taskSumStr;
 
@@ -14,8 +14,8 @@ private:
   void allocate(Agent* a);
 
 public:
-  IMAPF(Graph* _G, std::vector<Agent*> _A, int _taskLimit);
-  IMAPF(Graph* _G, std::vector<Agent*> _A, int _taskLimit, std::mt19937* _MT);
+  IMAPF(Graph* _G, Agents _A, int _taskLimit);
+  IMAPF(Graph* _G, Agents _A, int _taskLimit, std::mt19937* _MT);
   ~IMAPF();
 
   bool isSolved();

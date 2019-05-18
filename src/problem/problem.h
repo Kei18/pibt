@@ -3,12 +3,17 @@
 #include "../agent/agent.h"
 #include "../task/task.h"
 
+using Agents = std::vector<Agent*>;
+// defined in Graph.h
+// using Nodes = std::vector<Node*>;
+// using Paths = std::vector<Nodes>;
 
 class Problem {
 protected:
   int timestep;
+  int timesteplimit;
   Graph *G;
-  std::vector<Agent*> A;
+  Agents A;
   std::vector<Task*> T_OPEN;   // open tasks
   std::vector<Task*> T_CLOSE;  // close tasks
 
@@ -17,10 +22,10 @@ protected:
   void init();
 
 public:
-  Problem(Graph* _G, std::vector<Agent*> _A, std::vector<Task*> _T);
-  Problem(Graph* _G, std::vector<Agent*> _A);
-  Problem(Graph* _G, std::vector<Agent*> _A, std::vector<Task*> _T, std::mt19937* _MT);
-  Problem(Graph* _G, std::vector<Agent*> _A, std::mt19937* _MT);
+  Problem(Graph* _G, Agents _A, std::vector<Task*> _T);
+  Problem(Graph* _G, Agents _A);
+  Problem(Graph* _G, Agents _A, std::vector<Task*> _T, std::mt19937* _MT);
+  Problem(Graph* _G, Agents _A, std::mt19937* _MT);
 
   virtual ~Problem();
 
@@ -28,11 +33,14 @@ public:
   virtual void update() {}
   virtual bool allocated() { return false; }  // whether tasks are assigned beforehand?
 
-  Graph* getG() { return G; }  // graph
-  std::vector<Agent*> getA() { return A; }  // agents
-  std::vector<Task*> getT() { return T_OPEN; }  // tasks (open)
+  Graph* getG() { return G; }
+  Agents getA() { return A; }
+  std::vector<Task*> getT() { return T_OPEN; }
   int getTerminationTime() { return timestep; }
   int getTimestep() { return timestep; }
+
+  int getTimestepLimit() { return timesteplimit; }
+  void setTimestepLimit(int _t) { timesteplimit = _t; }
 
   void assign(Task* tau);
   virtual void setAutoAssignement(bool flg) {}

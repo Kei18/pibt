@@ -25,7 +25,7 @@ void ECBS::init() {
   for (auto a : A) table_fmin.emplace(a->getId(), 0);
 }
 
-bool ECBS::solvePart(Paths& paths, Block& block) {
+bool ECBS::solvePart(Paths& paths, Agents& block) {
   CTNode* node;
   Constraints constraints;
 
@@ -49,7 +49,7 @@ bool ECBS::solvePart(Paths& paths, Block& block) {
   ++uuid;
 
   bool CAT = std::any_of(paths.begin(), paths.end(),
-                         [](std::vector<Node*> p) { return !p.empty(); });
+                         [](Nodes p) { return !p.empty(); });
 
   auto itrO = OPEN.begin();
 
@@ -87,8 +87,9 @@ bool ECBS::solvePart(Paths& paths, Block& block) {
                                      return table[a]->cost < table[b]->cost;
                                    }
                                    return sA < sB; });
+
     keyF = *itrF;
-    node = table.at(keyF);
+    node = table[keyF];
 
     constraints = valid(node, block);
     if (constraints.empty()) break;
@@ -98,10 +99,19 @@ bool ECBS::solvePart(Paths& paths, Block& block) {
     OPEN.erase(itrP);
 
     for (auto constraint : constraints) {
-      CTNode* newNode = new CTNode { constraint,
-                                     node->paths, 0,
-                                     node, true,
-                                     {}, 0 };
+      CTNode* newNode = new CTNode { constraint, node->paths,
+                                     0, node, true, {}, 0 };
+      // formating
+      Node* g;
+      Nodes p;
+      for (int i = 0; i < node->paths.size(); ++i) {
+        p = newNode->paths[i];
+        if (p.empty()) continue;
+        g = *(p.end() - 1);
+        while (*(p.end() - 1) == g) p.erase(p.end() - 1);
+        p.push_back(g);
+        node->paths[i] = p;
+      }
       newNode->fmins = node->fmins;
       invoke(newNode, block);
       if (newNode->valid) {
@@ -129,7 +139,7 @@ bool ECBS::solvePart(Paths& paths, Block& block) {
 
 }
 
-void ECBS::invoke(CTNode* node, Block& block) {
+void ECBS::invoke(CTNode* node, Agents& block) {
   int d;
   // calc path
   if (node->c.empty()) {  // initail
@@ -185,16 +195,17 @@ void ECBS::invoke(CTNode* node, Block& block) {
 
   if (!node->valid) return;
   calcCost(node, block);
-  formalizePathBlock(node, block);
+  formalizePathAgents(node, block);
 }
 
-int ECBS::h3(std::vector<Node*> &p1, Paths &paths) {
+int ECBS::h3(Agent* a, Nodes &p1, Paths &paths) {
   if (p1.empty()) return 0;
 
   int collision = 0;
-  std::vector<Node*> p2;
+  Nodes p2;
 
   for (int i = 0; i < paths.size(); ++i) {
+    if (a->getId() == i) continue;
     p2 = paths[i];
     if (p2.empty()) continue;
     for (int t = 0; t < p1.size(); ++t) {
@@ -228,7 +239,7 @@ int ECBS::h3(std::vector<Node*> &p1, Paths &paths) {
 int ECBS::h3(Paths &paths) {
 
   int collision = 0;
-  std::vector<Node*> p1, p2;
+  Nodes p1, p2;
 
   for (int i = 0; i < paths.size(); ++i) {
     for (int j = i + 1; j < paths.size(); ++j) {
@@ -244,6 +255,7 @@ int ECBS::h3(Paths &paths) {
 
       for (int t = 0; t < p1.size(); ++t) {
         if (t >= p2.size()) {
+          // goal pos
           if (p1[t] == p2[p2.size() - 1]) {
             ++collision;
             break;
@@ -254,6 +266,7 @@ int ECBS::h3(Paths &paths) {
           ++collision;
           break;
         }
+        // intersection
         if (t > 0 && p1[t-1] == p2[t] && p1[t] == p2[t-1]) {
           ++collision;
           break;
@@ -271,11 +284,10 @@ int ECBS::h3(Paths &paths) {
   return collision;
 }
 
-std::vector<Node*> ECBS::AstarSearch(Agent* a, CTNode* node) {
+Nodes ECBS::AstarSearch(Agent* a, CTNode* node) {
+  Constraint constraints = getConstraintsForAgent(node, a);
 
-  Constraint constraints = getConstraitnsForAgent(node, a);
-
-  std::vector<Node*> path;  // return
+  Nodes path;  // return
   auto paths = node->paths;
   Node* s = a->getNode();
   Node* g = a->getGoal();
@@ -287,8 +299,8 @@ std::vector<Node*> ECBS::AstarSearch(Agent* a, CTNode* node) {
   }
 
   int t = 0;
-  std::vector<Node*> C;  // candidates
-  std::vector<Node*> tmpPath;  // for count conflict
+  Nodes C;  // candidates
+  Nodes tmpPath;  // for count conflict
   int f = 100000;
   float ub;
   bool updateMin = true;
@@ -344,8 +356,10 @@ std::vector<Node*> ECBS::AstarSearch(Agent* a, CTNode* node) {
     // check goal
     if (n->v == g) {
       auto check = std::find_if(constraints.begin(), constraints.end(),
-                                [n] (Conflict* c)
-                                { return (c->v == n->v) && (c->t >= n->t); });
+                                [n] (Conflict* c) {
+                                  return c->onNode
+                                    && (c->v == n->v)
+                                    && (c->t >= n->t); });
       if (check == constraints.end()) {
         invalid = false;
         break;
@@ -370,30 +384,32 @@ std::vector<Node*> ECBS::AstarSearch(Agent* a, CTNode* node) {
       // check constraints
       t = n->t + 1;
       auto constraint = std::find_if(constraints.begin(), constraints.end(),
-                                     [a, t, m](Conflict* c) {
-                                       return (c->a == a)
-                                         && (c->t == t) && (c->v == m); });
+                                     [a, t, m, n](Conflict* c) {
+                                       if (c->a != a) return false;
+                                       if (c->t != t) return false;
+                                       if (c->onNode) return c->v == m;
+                                       return c->v == m && c->u == n->v;
+                                     });
       if (constraint != constraints.end()) continue;
-
       key = getKey(t, m);
+
       f = t + pathDist(m, g);
       auto itr2 = table.find(key);
       if (itr2 == table.end()) {
         l = new AN { m, true, t, f, n };
         table.emplace(key, l);
         tmpPath = getPartialPath(l);
-        table_conflict.emplace(key, h3(tmpPath, paths));
+        table_conflict.emplace(key, h3(a, tmpPath, paths));
       } else {
         l = table.at(key);
         if (!l->open) continue;
       }
 
       if (l->f > f) {
-        l->t = t;
         l->f = f;
         l->p = n;
         tmpPath = getPartialPath(l);
-        table_conflict.emplace(key, h3(tmpPath, paths));
+        table_conflict.at(key) = h3(a, tmpPath, paths);
       }
 
       tmpPath.clear();
@@ -402,25 +418,20 @@ std::vector<Node*> ECBS::AstarSearch(Agent* a, CTNode* node) {
   }
 
   // back tracking
+  int fmin = 0;
   if (!invalid) {  // check failed or not
     path = getPartialPath(n);
+    fmin = table.at(*itrO)->f;
   } else {
     node->valid = false;
-  }
-
-  int fmin;
-  if (path.empty()) {
-    fmin = 0;
-  } else {
-    fmin = table.at(*itrO)->f;
   }
   table_fmin.at(a->getId()) = fmin;
 
   return path;
 }
 
-std::vector<Node*> ECBS::getPartialPath(AN* n) {
-  std::vector<Node*> path;
+Nodes ECBS::getPartialPath(AN* n) {
+  Nodes path;
   AN* m = n;
   while (m->p) {
     path.push_back(m->v);
@@ -435,6 +446,7 @@ std::string ECBS::logStr() {
   std::string str;
   str += "[solver] type:ECBS\n";
   str += "[solver] w:" + std::to_string(w) + "\n";
+  str += "[solver] ID:" + std::to_string(ID) + "\n";
   str += Solver::logStr();
   return str;
 }

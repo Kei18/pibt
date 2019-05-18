@@ -1,8 +1,8 @@
 ===params of problem setting===
-// choose problem, currently {MAPF, MAPD, IMAPF} are coded.
+// choose problem, currently {MAPF, MAPF_STATION, MAPD, IMAPF, IMAPF_STATION} are coded.
 PROBLEM_TYPE=MAPF
 
-// choose solver, currently {PIBT, HCA, WHCA, CBS, ECBS, TP} are coded.
+// choose solver, currently {PIBT, HCA, WHCA, CBS, ECBS, iECBS, TP, winPIBT} are coded.
 SOLVER_TYPE=PIBT
 
 // choose map file
@@ -10,6 +10,9 @@ field=./map/arena.map
 
 // number of agents
 agentnum=100
+
+// timestep limitation
+timesteplimit=50000
 
 // number of tasks, for MAPD, IMAPF
 tasknum=500
@@ -43,6 +46,8 @@ window=5
 // suboptimal factor of ECBS
 suboptimal=1.2
 
+// for winPIBT, iterative use
+softmode=1
 
 ===params of visualizatoin===
 // show icon initially, choose {0, 1}
