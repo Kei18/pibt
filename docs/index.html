@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <title>Priority Inheritance with Backtracking</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+      <link href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,700" rel="stylesheet">
+      <link rel="stylesheet" href="css/open-iconic-bootstrap.min.css">
+      <link rel="stylesheet" href="css/animate.css">
+      <link rel="stylesheet" href="css/owl.carousel.min.css">
+      <link rel="stylesheet" href="css/owl.theme.default.min.css">
+      <link rel="stylesheet" href="css/magnific-popup.css">
+      <link rel="stylesheet" href="css/aos.css">
+      <link rel="stylesheet" href="css/ionicons.min.css">
+      <link rel="stylesheet" href="css/bootstrap-datepicker.css">
+      <link rel="stylesheet" href="css/jquery.timepicker.css">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/bxslider/4.2.12/jquery.bxslider.css">
+      <link rel="stylesheet" href="css/flaticon.css">
+      <link rel="stylesheet" href="css/icomoon.css">
+      <link rel="stylesheet" href="css/style.css">
+  </head>
+  <body>
+
+	<div id="colorlib-page">
+		<a href="#" class="js-colorlib-nav-toggle colorlib-nav-toggle"><i></i></a>
+		<aside id="colorlib-aside" role="complementary" class="js-fullheight text-center">
+		    <h1 id="colorlib-logo"><a href="./">PIBT</a></h1>
+			<nav id="colorlib-main-menu" role="navigation">
+				<ul>
+					<li class="colorlib-active"><a href="#overview">Overview</a></li>
+                    <li><a href="#mechanism">How to work</a></li>
+                    <li><a href="#code">Code</a></li>
+					<li><a href="#publication">Publication</a></li>
+                    <li><a href="#contact">Contact</a></li>
+				</ul>
+			</nav>
+
+			<div class="colorlib-footer">
+				<ul>
+                    <li><a href="https://github.com/Kei18/pibt.git"><i class="icon-github"></i></a></li>
+				</ul>
+			</div>
+		</aside> <!-- END COLORLIB-ASIDE -->
+
+		<div id="colorlib-main">
+		    <section style="margin-top:20px">
+                <div class="row justify-content-center mb-5 pb-2" id="overview">
+                    <div class="heading-section text-center">
+                        <h2 class="mb-2 mt-2">Priority Inheritance with Backtracking (PIBT)</h2>
+                    </div>
+                </div>
+                <div class="container">
+                    <div class="row justify-content-center mb-5 pb-2">
+                        <div class="col-md-12 text-center ftco-animate">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <div class="text-left">
+                                        <h3 class="mt-2 text-center">Overview</h3>
+                                        <p class="mb-2 text-center" style="margin-top:-10px"><small>(citation from our paper)</small></p>
+                                        <p>
+                                            The Multi-agent Path Finding (MAPF) problem consists in all agents having to move to their own destinations while avoiding collisions.
+                                          In practical applications to the problem, such as for navigation in an automated warehouse, MAPF must be solved iteratively.
+                                          We present here a novel approach to iterative MAPF, that we call Priority Inheritance with Backtracking (PIBT). PIBT gives a unique priority to each agent every timestep, so that all movements are prioritized.
+                                          Priority inheritance, which aims at dealing effectively with priority inversion in path adjustment within a small time window, can be applied iteratively and a backtracking protocol prevents agents from being stuck.
+                                          We prove that, regardless of their number, all agents are guaranteed to reach their destination within finite time, when the environment is a graph such that all pairs of adjacent nodes belong to a simple cycle of length 3 or more (e.g., biconnected).
+                                          Our implementation of PIBT can be fully decentralized without global communication.
+                                          Experimental results over various scenarios demonstrate that PIBT is competitive with the state of the art MAPF solvers, and has high potential in practical situations.
+                                      </p>
+                                      <p class="mt-2">
+                                          <small>
+                                              keywords : iterative multi-agent path finding, collision avoidance
+                                          </small>
+                                      </p>
+                                      <div class="row">
+                                          <div class="col-md-6 mb-1">
+                                              <img alt="" src="images/mapf.gif" class="img-fluid" />
+                                              <p class="text-center"><small>Multi-agent Path Finding</small></p>
+                                          </div>
+                                          <div class="col-md-6 mb-1">
+                                              <img alt="" src="images/sushi.gif" class="img-fluid" />
+                                              <p class="text-center"><small>Multi-agent Pickup and Delivery (sushi-mode)</small></p>
+                                          </div>
+                                      </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="mechanism" class="container">
+                    <div class="row justify-content-center mb-5 pb-2">
+                        <div class="col-md-12 heading-section text-center ftco-animate">
+                            <h3>How to work</h3>
+                        </div>
+                        <div class="col-md-12 heading-section text-left">
+                            <div class="slider">
+                                <div><img class="d-block w-100" src="./images/slideshow/pibt1.png"></div>
+                                <div><img class="d-block w-100" src="./images/slideshow/pibt2.png"></div>
+                                <div><img class="d-block w-100" src="./images/slideshow/pibt3.png"></div>
+                                <div><img class="d-block w-100" src="./images/slideshow/pibt4.png"></div>
+                                <div><img class="d-block w-100" src="./images/slideshow/pibt5.png"></div>
+                                <div><img class="d-block w-100" src="./images/slideshow/pibt6.png"></div>
+                                <div><img class="d-block w-100" src="./images/slideshow/pibt7.png"></div>
+                                <div><img class="d-block w-100" src="./images/slideshow/pibt8.png"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+              <div id="code" class="container">
+                  <div class="row justify-content-center mb-5 pb-2">
+                      <div class="col-md-12 heading-section text-center ftco-animate">
+                          <h3>Code</h3>
+                      </div>
+                      <div class="col-md-12 heading-section text-left">
+                          <p class="text-center">
+                              The code is available at <a href="https://github.com/Kei18/pibt.git">GitHub</a>.
+                          </p>
+                          <ul class="mb-2">
+                              <li>
+                                  <p>
+                                      <a href="https://github.com/Kei18/pibt/releases/tag/v1.0">version 1</a> <small>(Feb. 2019)</small><br>
+                                      Experimental environment of the original PIBT paper. See publication 1.
+                                  </p>
+                              </li>
+                              <li>
+                                  <p>
+                                      <a href="https://github.com/Kei18/pibt/releases/tag/v1.1">version 2</a> <small>(May. 2019)</small><br>
+                                      Improve graph representation and
+                                      conflict representation for CBS-styles solvers from the previous one.
+                                      Experimental environment of the winPIBT paper (coming soon).
+                                  </p>
+                              </li>
+                          </ul>
+                      </div>
+                  </div>
+              </div>
+
+              <div id="publication" class="container">
+    		      <div class="row justify-content-center mb-5 pb-2">
+                      <div class="col-md-12 heading-section text-center ftco-animate">
+                          <h3>Publication</h3>
+                      </div>
+                      <div class="col-md-12 heading-section text-left">
+                          <ol class="mb-2">
+				              <li id="publication-pibt">
+                                  Keisuke Okumura, Manao Machida, Xavier Défago & Yasumasa Tamura:
+                                  Priority Inheritance with Backtracking for Iterative Multi-agent Path Finding
+                                  (<a href="https://arxiv.org/abs/1901.11282">arXiv:1901.11282</a>)
+                              </li>
+                          </ol>
+                      </div>
+                  </div>
+              </div>
+          </section>
+
+          <footer class="ftco-footer ftco-bg-dark ftco-section">
+              <div class="container pl-5">
+                  <div class="row" id="contact">
+                      <div class="col-md">
+                          <div class="ftco-footer-widget">
+            	              <h2 class="ftco-heading-2">Contact</h2>
+            	              <div class="block-23 mb-3">
+	                              <ul>
+	                                  <li><span class="icon icon-envelope"></span><span class="text" style="color:white">okumura.k [at] coord.c.titech.ac.jp</span></li>
+	                              </ul>
+	                          </div>
+                          </div>
+                      </div>
+                  </div>
+                  <div class="row">
+                      <div class="col-md-12">
+                          <p><!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
+                              &copy;<script>document.write(new Date().getFullYear());</script>
+                              <a href="https://kei18.github.io/">Keisuke Okumura</a>
+                              | This template is made with <i class="icon-heart" aria-hidden="true"></i> by <a href="https://colorlib.com" target="_blank">Colorlib</a>
+                              <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
+                          </p>
+                      </div>
+                  </div>
+              </div>
+          </footer>
+		</div><!-- END COLORLIB-MAIN -->
+	</div><!-- END COLORLIB-PAGE -->
+
+  <!-- loader -->
+  <div id="ftco-loader" class="show fullscreen"><svg class="circular" width="48px" height="48px"><circle class="path-bg" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke="#eeeeee"/><circle class="path" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke-miterlimit="10" stroke="#F96D00"/></svg></div>
+
+
+  <script src="js/jquery.min.js"></script>
+  <script src="js/jquery-migrate-3.0.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/bxslider/4.2.12/jquery.bxslider.min.js"></script>
+  <script src="js/popper.min.js"></script>
+  <script src="js/bootstrap.min.js"></script>
+  <script src="js/jquery.easing.1.3.js"></script>
+  <script src="js/jquery.waypoints.min.js"></script>
+  <script src="js/jquery.stellar.min.js"></script>
+  <script src="js/owl.carousel.min.js"></script>
+  <script src="js/jquery.magnific-popup.min.js"></script>
+  <script src="js/aos.js"></script>
+  <script src="js/jquery.animateNumber.min.js"></script>
+  <script src="js/bootstrap-datepicker.js"></script>
+  <script src="js/jquery.timepicker.min.js"></script>
+  <script src="js/scrollax.min.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBVWaKrjvy3MaE7SQ74_uJiULgl1JY0H2s&sensor=false"></script>
+  <script src="js/google-map.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+   $(document).ready(function(){ $('.slider').bxSlider(); });
+  </script>
+  </body>
+</html>

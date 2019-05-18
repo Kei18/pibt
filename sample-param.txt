@@ -1,0 +1,52 @@
+===params of problem setting===
+// choose problem, currently {MAPF, MAPD, IMAPF} are coded.
+PROBLEM_TYPE=MAPF
+
+// choose solver, currently {PIBT, HCA, WHCA, CBS, ECBS, TP} are coded.
+SOLVER_TYPE=PIBT
+
+// choose map file
+field=./map/arena.map
+
+// number of agents
+agentnum=100
+
+// number of tasks, for MAPD, IMAPF
+tasknum=500
+
+// task frequency for MAPD
+taskfrequency=1
+
+// seed for randomness
+seed=0
+
+// save log or not, choose {0, 1}
+log=1
+
+// print log, choose {0, 1}
+printlog=0
+
+// print implementation time or not, choose {0, 1}
+printtime=1
+
+
+===params of solvers===
+// calculate paths beforehand by Warshall-Floyd, choose {0, 1}
+WarshallFlpoyd=0
+
+// Indepent Detection for CBS and ECBS, choose {0, 1}
+ID=0
+
+// window size of WHCA
+window=5
+
+// suboptimal factor of ECBS
+suboptimal=1.2
+
+
+===params of visualizatoin===
+// show icon initially, choose {0, 1}
+showicon=0
+
+// icon file
+icon=./material/peterpan.png
