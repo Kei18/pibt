@@ -1,8 +1,10 @@
 ===params of problem setting===
-// choose problem, currently {MAPF, MAPF_STATION, MAPD, IMAPF, IMAPF_STATION} are coded.
+// choose problem
+// option: { MAPF, MAPF_STATION, MAPD, IMAPF, IMAPF_STATION, I_MAPF_FAIR }
 PROBLEM_TYPE=MAPF
 
-// choose solver, currently {PIBT, HCA, WHCA, CBS, ECBS, iECBS, TP, winPIBT} are coded.
+// choose solver
+// option: { PIBT, HCA, WHCA, PPS, CBS, ECBS, iECBS, TP, winPIBT }
 SOLVER_TYPE=PIBT
 
 // choose map file
@@ -19,6 +21,12 @@ tasknum=500
 
 // task frequency for MAPD
 taskfrequency=1
+
+// use scenario, choose {0, 1}
+scenario=0
+
+// scenario file
+scenariofile=./scen/../*.scen
 
 // seed for randomness
 seed=0

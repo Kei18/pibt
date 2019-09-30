@@ -20,7 +20,7 @@ protected:
   bool solvePart(Paths& paths, Agents& block);
   void invoke(CTNode* node, Agents& block);
   virtual Nodes AstarSearch(Agent* a, CTNode* node);
-  Nodes getPartialPath(AN* n);
+  void getPartialPath(AN* n, Nodes &path);
 
 public:
   ECBS(Problem* _P, float _w);

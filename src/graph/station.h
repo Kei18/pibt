@@ -22,7 +22,7 @@ public:
   Station(std::string filename, std::mt19937* _MT);
   ~Station();
 
-  Paths getStartGoal(int num);
+  Paths getRandomStartGoal(int num);
   Node* getNewGoal(Node* v);
   std::string logStr();
 };

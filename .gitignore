@@ -92,5 +92,13 @@ Desktop.ini
 ##################
 # Custom Setting
 ##################
-/src/dummy.h
+/bin/
+/dst/
 param.txt
+tmp.txt
+/map/toy.map
+param.sh
+/scen/*
+!/scen/.gitignore
+/log/*
+!/log/.gitignore

@@ -2,6 +2,9 @@
 #include "ofApp.h"
 #include "util/util.h"
 
+// use real photos
+// #define REALSUSHI
+
 // visualization params
 static const int OSX_SCREEN_WIDTH  = 1280;
 static const int OSX_SCREEN_HEIGHT = 800;
@@ -24,6 +27,7 @@ static const std::vector<std::string> SUSHINETA =
    "syako.png", "syari.png", "tai.png", "tako.png", "takuwan.png", "tekkamaki.png",
    "tsuna.png", "uni2.png", "yunomi.png"
   };
+static const int REALSUSHI_NUM = 34;
 static const std::string SHOKUNIN = "../../material/sushi/syokunin.png";
 static const std::string HASHIIMG = "../../material/sushi/chopstics.png";
 
@@ -42,7 +46,6 @@ static const std::vector<ofColor> AGENTCOLORS =
    ofColor(244, 67, 54), ofColor(96, 125, 139),
    ofColor(0, 150, 136), ofColor(63, 81, 181)
   };
-
 
 ofApp::ofApp(Problem* _P) : P(_P) {
   int map_w = P->getG()->getW();
@@ -69,17 +72,25 @@ ofApp::ofApp(Problem* _P) : P(_P) {
   img.resize(AGENTRAD*2, AGENTRAD*2);
   shokunin.load(SHOKUNIN);
   shokunin.resize(AGENTRAD*2, AGENTRAD*2);
+  imgHashi.load(HASHIIMG);
+  imgHashi.resize(AGENTRAD*2, AGENTRAD*2);
+#ifdef REALSUSHI
+  for (int i = 1; i <= REALSUSHI_NUM; ++i) {
+    ofImage *neta = new ofImage;
+    neta->load("../../material/real-sushi/" + std::to_string(i) + ".png");
+    neta->resize(AGENTRAD*2, AGENTRAD*2);
+    sushineta.push_back(neta);
+  }
+#else
   for (auto netaname : SUSHINETA) {
     ofImage *neta = new ofImage;
     neta->load("../../material/sushi/" + netaname);
     neta->resize(AGENTRAD*2, AGENTRAD*2);
     sushineta.push_back(neta);
   }
-  imgHashi.load(HASHIIMG);
-  imgHashi.resize(AGENTRAD*2, AGENTRAD*2);
+#endif
 
   showgoal = true;
-
   fontOn = false;
   lineOn = false;
   edgeOn = isDirect;

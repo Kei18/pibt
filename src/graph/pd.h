@@ -33,7 +33,7 @@ public:
   Nodes getDelivery() { return delivery; }
   Nodes getEndpoints() { return endpoints; }
   Nodes getAllSpecialPoints();
-  Paths getStartGoal(int num);
+  Paths getRandomStartGoal(int num);
 
   std::string logStr();
 };

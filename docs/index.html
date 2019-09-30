@@ -60,14 +60,8 @@
                                         <h3 class="mt-2 text-center">Overview</h3>
                                         <p class="mb-2 text-center" style="margin-top:-10px"><small>(citation from PIBT paper)</small></p>
                                         <p>
-                                            The Multi-agent Path Finding (MAPF) problem consists in all agents having to move to their own destinations while avoiding collisions.
-                                          In practical applications to the problem, such as for navigation in an automated warehouse, MAPF must be solved iteratively.
-                                          We present here a novel approach to iterative MAPF, that we call Priority Inheritance with Backtracking (PIBT). PIBT gives a unique priority to each agent every timestep, so that all movements are prioritized.
-                                          Priority inheritance, which aims at dealing effectively with priority inversion in path adjustment within a small time window, can be applied iteratively and a backtracking protocol prevents agents from being stuck.
-                                          We prove that, regardless of their number, all agents are guaranteed to reach their destination within finite time, when the environment is a graph such that all pairs of adjacent nodes belong to a simple cycle of length 3 or more (e.g., biconnected).
-                                          Our implementation of PIBT can be fully decentralized without global communication.
-                                          Experimental results over various scenarios demonstrate that PIBT is competitive with the state of the art MAPF solvers, and has high potential in practical situations.
-                                      </p>
+                                            The Multi-agent Path Finding (MAPF) problem consists in all agents having to move to their own destinations while avoiding collisions. In practical applications to the problem, such as for navigation in an automated warehouse, MAPF must be solved iteratively. We present here a novel approach to iterative MAPF, that we call Priority Inheritance with Backtracking (PIBT). PIBT gives a unique priority to each agent every timestep, so that all movements are prioritized. Priority inheritance, which aims at dealing effectively with priority inversion in path adjustment within a small time window, can be applied iteratively and a backtracking protocol prevents agents from being stuck. We prove that, regardless of their number, all agents are guaranteed to reach their destination within finite time, when the environment is a graph such that all pairs of adjacent nodes belong to a simple cycle of length 3 or more (e.g., biconnected). Our implementation of PIBT can be fully decentralized without global communication. Experimental results over various scenarios confirm that PIBT is adequate both for finding paths in large environments with many agents, as well as for conveying packages in an automated warehouse.
+                                        </p>
                                       <p class="mt-2">
                                           <small>
                                               keywords : iterative multi-agent path finding, collision avoidance
@@ -122,15 +116,22 @@
                           <ul class="mb-2">
                               <li>
                                   <p>
-                                      <a href="https://github.com/Kei18/pibt/releases/tag/v1.0">version 1</a> <small>(Feb. 2019)</small><br>
+                                      <a href="https://github.com/Kei18/pibt/releases/tag/v1.0">version 1.0</a> <small>(Feb. 2019)</small><br>
                                       Experimental environment of the original PIBT paper. See publication 1.
                                   </p>
                               </li>
                               <li>
                                   <p>
-                                      <a href="https://github.com/Kei18/pibt/releases/tag/v1.1">version 2</a> <small>(May. 2019)</small><br>
+                                      <a href="https://github.com/Kei18/pibt/releases/tag/v1.1">version 1.1</a> <small>(May. 2019)</small><br>
                                       Improve graph representation and
                                       conflict representation for CBS-styles solvers from the previous one.
+                                  </p>
+                              </li>
+                              <li>
+                                  <p>
+                                      <a href="https://github.com/Kei18/pibt/releases/tag/v1.2">version 1.2</a> <small>(Sep. 2019)</small><br>
+                                      Improve low-level search by using fibonacci heap.
+                                      Enable to handle scenarios of MAPF benchmarks.
                                       Experimental environment of the winPIBT paper.
                                       See publication 2.
                                   </p>

@@ -114,7 +114,7 @@ void Station::setStartGoal() {
   }
 }
 
-Paths Station::getStartGoal(int num) {
+Paths Station::getRandomStartGoal(int num) {
   int stNum = stations.size();
   if (std::any_of(stations.begin(), stations.end(),
                   [num, stNum] (Nodes st)

@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <regex>
+#include "../graph/graph.h"
 
 
 namespace Param {
@@ -9,7 +10,8 @@ namespace Param {
                       P_MAPD,
                       P_IMAPF,
                       P_MAPF_STATION,
-                      P_IMAPF_STATION };
+                      P_IMAPF_STATION,
+                      P_IMAPF_FAIR };
 
   // def. of solver types
   enum SOLVER_TYPE { S_CBS,
@@ -31,6 +33,8 @@ namespace Param {
     int timesteplimit;
     int tasknum;
     float taskfrequency;
+    bool scenario;
+    std::string scenariofile;
     int seed;  // seed
     bool log;
     bool printlog;
@@ -84,6 +88,8 @@ void setParams(std::string filename,
   std::regex r_timesteplimit = std::regex(R"(timesteplimit=(\d+))");
   std::regex r_tasknum = std::regex(R"(tasknum=(\d+))");
   std::regex r_taskfrequency = std::regex(R"(taskfrequency=(\d+[\.]?\d*))");
+  std::regex r_scenario = std::regex(R"(scenario=(\d+))");
+  std::regex r_scenariofile = std::regex(R"(scenariofile=(.+))");
   std::regex r_seed = std::regex(R"(seed=(\d+))");
   std::regex r_log = std::regex(R"(log=(\d+))");
   std::regex r_printlog = std::regex(R"(printlog=(\d+))");
@@ -113,6 +119,8 @@ void setParams(std::string filename,
         env->PTYPE = Param::PROBLEM_TYPE::P_MAPF_STATION;
       } else if (tmpstr == "IMAPF_STATION") {
         env->PTYPE = Param::PROBLEM_TYPE::P_IMAPF_STATION;
+      } else if (tmpstr == "IMAPF_FAIR") {
+        env->PTYPE = Param::PROBLEM_TYPE::P_IMAPF_FAIR;
       } else {
         std::cout << "error@setParams, problem type "
                   << tmpstr
@@ -155,6 +163,10 @@ void setParams(std::string filename,
       env->tasknum = std::stoi(results[1].str());
     } else if (std::regex_match(line, results, r_taskfrequency)) {
       env->taskfrequency = std::stof(results[1].str());
+    } else if (std::regex_match(line, results, r_scenario)) {
+      env->scenario = std::stoi(results[1].str());
+    } else if (std::regex_match(line, results, r_scenariofile)) {
+      env->scenariofile = results[1].str();
     } else if (std::regex_match(line, results, r_seed)) {
       env->seed = std::stoi(results[1].str());
     } else if (std::regex_match(line, results, r_log)) {
@@ -177,6 +189,35 @@ void setParams(std::string filename,
       visual->showicon = std::stoi(results[1].str());
     } else if (std::regex_match(line, results, r_icon)) {
       visual->icon = results[1].str();
+    }
+  }
+}
+
+void setScenario(std::string filename, Paths &points, Graph* G)
+{
+  // file open
+  std::ifstream file(filename);
+  if (!file) {
+    std::cout << "error@setScenario, file "
+              << filename
+              <<" cannot be read." << "\n";
+    std::exit(1);
+  }
+
+  std::regex r_config = std::regex(R"(\d+\t.+?\t\d+\t\d+\t(\d+)\t(\d+)\t(\d+)\t(\d+)\t.+)");
+
+  std::string line;
+  std::smatch results;
+  int x1, y1, x2, y2;
+
+  // read files
+  while (getline(file, line)) {
+    if (std::regex_match(line, results, r_config)) {
+      x1 = std::stoi(results[1].str());
+      y1 = std::stoi(results[2].str());
+      x2 = std::stoi(results[3].str());
+      y2 = std::stoi(results[4].str());
+      points.push_back({G->getNode(x1, y1), G->getNode(x2, y2)});
     }
   }
 }

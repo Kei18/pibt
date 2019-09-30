@@ -41,7 +41,6 @@ bool WHCA::solve() {
   int t = 0;
   int limit;
   bool failed = false;
-  Node* g;
 
   // initialize path
   for (auto a : A) PATHS.push_back({ a->getNode() });
@@ -57,24 +56,12 @@ bool WHCA::solve() {
       }
 
       // reach goal
-      g = A[i]->getGoal();
-      if (!hasWindow && path[path.size() - 1] == A[i]->getGoal()) {
-        CG* cg = new CG { A[i], (int)path.size() - 1, g };
+      if (!hasWindow) {
+        CG* cg = new CG { A[i], (int)path.size() - 1, A[i]->getGoal() };
         CGOAL.push_back(cg);
       }
-      if (hasWindow && (*path.begin()) != g) {
-        auto itr = std::find_if(path.begin() + 1, path.begin() + window + 1,
-                                 [g](Node* v) { return v == g; });
-        if (itr != path.begin() + window + 1) {  // reach goal
-          int dis = std::distance(path.begin(), itr);
-          CG* cg = new CG { A[i], t + dis, g };
-          CGOAL.push_back(cg);
-        }
-      }
 
-      PATHS[i].insert(PATHS[i].end(),
-                      path.begin() + 1,
-                      path.begin() + std::min(window + 1, (int)path.size()));
+      PATHS[i].insert(PATHS[i].end(), path.begin() + 1, path.end());
     }
 
     if (failed) break;
@@ -97,47 +84,53 @@ bool WHCA::solve() {
 }
 
 Nodes WHCA::getPath(Agent* a, int startTime, Paths& paths) {
-  Nodes path;
-  Nodes C;
-  Node* s = a->getNode();
-  Node* g = a->getGoal();
-  int f = 0;
-  int t = startTime;
+
+  Node* _s = a->getNode();
+  Node* _g = a->getGoal();
+
+  Nodes path, tmpPath, C;
+
+  int f, g;
   std::string key;
   bool prohibited = false;
   int maxLength = getMaxLengthPaths(paths);
 
-  // fast implementation
-  Nodes tmp = G->getPath(s, g);  // already known
+  // ==== fast implementation ====
+  tmpPath = G->getPath(_s, _g);
   if (hasWindow) {
-    while (tmp.size() <= window) tmp.push_back(g);
+    while (tmpPath.size() <= window + 1) tmpPath.push_back(_g);
+    while (tmpPath.size() != window + 1) tmpPath.pop_back();
   } else {
-    while (tmp.size() <= maxLength) tmp.push_back(g);
+    while (tmpPath.size() <= maxLength) tmpPath.push_back(_g);
   }
-
   // check result of fast implementation
   // first, check goals
-  for (auto cg : CGOAL) {
-    if (cg->a == a) continue;
-    for (auto v : tmp) {
-      if (cg->v == v) {
-        prohibited = true;
-        break;
+  if (!hasWindow) {
+    for (auto cg : CGOAL) {
+      if (cg->a == a) continue;
+      for (auto v : tmpPath) {
+        if (cg->v == v) {
+          prohibited = true;
+          break;
+        }
       }
+      if (prohibited) break;
     }
-    if (prohibited) break;
   }
   // second, check collision and intersection
   if (!prohibited) {
+    int limit;
     for (auto p : paths) {
-      for (t = startTime + 1; t < p.size(); ++t) {
+      limit = p.size();
+      if (hasWindow) limit = startTime + window + 1;
+      for (int t = startTime + 1; t < limit; ++t) {
         if (t >= p.size()) break;
-        if (p[t] == tmp[t-startTime]) { // collision
+        if (p[t] == tmpPath[t-startTime]) { // collision
           prohibited = true;
           break;
         }
         if (t > startTime) {  // intersection
-          if (p[t] == tmp[t-startTime-1] && p[t-1] == tmp[t-startTime]) {
+          if (p[t] == tmpPath[t-startTime-1] && p[t-1] == tmpPath[t-startTime]) {
             prohibited = true;
             break;
           }
@@ -147,57 +140,41 @@ Nodes WHCA::getPath(Agent* a, int startTime, Paths& paths) {
     }
   }
   // success of fast implementation
-  if (!prohibited) {
-    return tmp;
-  }
+  if (!prohibited) return tmpPath;
+  tmpPath.clear();
+  // =============================
 
   // normal path finding
-  t = startTime;
-  AN *l, *n;
-  std::unordered_set<std::string> OPEN;
-  std::unordered_map<std::string, AN*> table;
-
-  l = new AN { s, true, startTime, pathDist(s, g), nullptr };
-  key = getKey(t, s);
-  table.emplace(key, l);
-  OPEN = { key };
-
   bool invalid = true;
+
+  boost::heap::fibonacci_heap<Fib_AN> OPEN;
+  std::unordered_map<std::string, boost::heap::fibonacci_heap<Fib_AN>::handle_type> SEARCHED;
+  std::unordered_set<std::string> CLOSE;  // key
+  AN* n = new AN { _s, startTime, pathDist(_s, _g), nullptr };
+  auto handle = OPEN.push(Fib_AN(n));
+  key = getKey(n);
+  SEARCHED.emplace(key, handle);
+
   while (!OPEN.empty()) {
     // argmin
-    auto itr1 = std::min_element(OPEN.begin(), OPEN.end(),
-                                 [&table](std::string a, std::string b)
-                                 { auto eleA = table.at(a);
-                                   auto eleB = table.at(b);
-                                   if (eleA->f == eleB->f) {
-                                     return eleA->t > eleB->t;
-                                   }
-                                   return eleA->f < eleB->f; });
-    key = *itr1;
-    n = table.at(key);
+    n = OPEN.top().node;
 
-    // fast implementation
-    if (hasWindow && t > startTime + window) {
-      invalid = false;
-      break;
-    }
-
-    // check goal
-    if (!hasWindow) {
-      if (n->v == g && n->t >= maxLength - 1) {
+    // check termination condition
+    if (!hasWindow) {  // non-window
+      if (n->v == _g && n->g >= maxLength - 1) {
         invalid = false;
         break;
       }
-    } else {
-      if (n->v == g && n->t >= startTime + window) {
+    } else {  // windowed
+      if (n->g >= startTime + window) {
         invalid = false;
         break;
       }
     }
 
     // update list
-    n->open = false;
-    OPEN.erase(itr1);
+    OPEN.pop();
+    CLOSE.emplace(getKey(n));
 
     // search neighbor
     C = G->neighbor(n->v);
@@ -205,64 +182,62 @@ Nodes WHCA::getPath(Agent* a, int startTime, Paths& paths) {
 
     for (auto m : C) {
       // check other paths
-      t = n->t + 1;
+      g = n->g + 1;
+      key = getKey(g, m);
+      if (CLOSE.find(key) != CLOSE.end()) continue;
 
-      if (t > 0) {
-        if (!(hasWindow && t > startTime + window)) {
-          prohibited = false;
-
-          for (auto p : paths) {
-            if (t >= p.size()) continue;
-            if (p[t] == m) { // collision
-              prohibited = true;
-              break;
-            }
-            if (p[t] == n->v && p[t-1] == m) {  // intersection
-              prohibited = true;
-              break;
-            }
-          }
-
-          if (!prohibited) {
-            for (auto cg : CGOAL) {
-              if (a != cg->a && t >= cg->t && m == cg->v) {
-                prohibited = true;
-                break;
-              }
-            }
-          }
-
-          if (prohibited) continue;
+      // check collision
+      prohibited = false;
+      for (auto p : paths) {
+        if (g >= p.size()) continue;
+        if (p[g] == m) {  // vertex collision
+          prohibited = true;
+          break;
+        }
+        if (p[g] == n->v && p[g-1] == m) {  // swap collision
+          prohibited = true;
+          break;
         }
       }
+      if (prohibited) continue;
 
-      t = n->t + 1;
-      key = getKey(t, m);
-      auto itr2 = table.find(key);
-      if (itr2 == table.end()) {
-        table.emplace(key, new AN { m, true, t, 100000, n });
-      }
-      l = table.at(key);
-      if (!l->open) continue;
-
-      f = t + pathDist(m, g);
-      if (l->f > f) {
-        l->t = t;
-        l->f = f;
-        l->p = n;
+      // collsiion at goal
+      if (!hasWindow) {
+        for (auto cg : CGOAL) {  // collection of goals
+          if (a != cg->a && g >= cg->t && m == cg->v) {
+            prohibited = true;
+            break;
+          }
+        }
+        if (prohibited) continue;
       }
 
-      OPEN.insert(key);
+      f = g + pathDist(m, _g);
+
+      auto itrS = SEARCHED.find(key);
+      if (itrS == SEARCHED.end()) {  // new node
+        AN* l = new AN { m, g, f, n };
+        auto handle = OPEN.push(Fib_AN(l));
+        SEARCHED.emplace(key, handle);
+      } else {
+        auto handle = itrS->second;
+        AN* l = (*handle).node;
+        if (l->f > f) {
+          l->g = g;
+          l->f = f;
+          l->p = n;
+        }
+        OPEN.increase(handle);
+      }
     }
   }
 
   // back tracking
   if (!invalid) {  // check failed or not
-    while (n->p) {
+    while (n != nullptr) {
       path.push_back(n->v);
       n = n->p;
     }
-    path.push_back(s);
     std::reverse(path.begin(), path.end());
   }
 

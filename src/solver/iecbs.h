@@ -15,10 +15,10 @@ protected:
   std::string highwayFile;
   std::unordered_map<std::string, float> highway;
 
-  Eigen::MatrixXi wdists;
+  Eigen::MatrixXf wdists;
 
   void init();
-  int highwayCost(Node* s, Node* g);
+  float highwayCost(Node* s, Node* g);
   Nodes AstarSearch(Agent* a, CTNode* node);
 
 public:

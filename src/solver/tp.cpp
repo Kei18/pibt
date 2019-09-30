@@ -209,6 +209,14 @@ Nodes TP::getPath(Agent* a, int startTime) {
   return getPath(a, a->getNode(), a->getGoal(), startTime, true);
 }
 
+struct AN_OLD {  // does not use fibnacci
+  Node* v;
+  bool open;
+  int t;
+  int f;
+  AN_OLD* p;
+};
+
 Nodes TP::getPath(Agent* a,
                   Node* s,
                   Node* g,
@@ -217,7 +225,7 @@ Nodes TP::getPath(Agent* a,
 {
   Nodes path;
   Nodes C;
-  AN *l, *n;
+  AN_OLD *l, *n;
   int t, f, cost;
   std::string key;
   bool prohibited, goalCheck;
@@ -230,10 +238,10 @@ Nodes TP::getPath(Agent* a,
   }
 
   std::unordered_set<std::string> OPEN;
-  std::unordered_map<std::string, AN*> table;
+  std::unordered_map<std::string, AN_OLD*> table;
 
   t = startTime - 1;
-  l = new AN { s, true, startTime - 1, pathDist(s, g), nullptr };
+  l = new AN_OLD { s, true, startTime - 1, pathDist(s, g), nullptr };
   key = getKey(t, s);
   table.emplace(key, l);
   OPEN = { key };
@@ -312,7 +320,7 @@ Nodes TP::getPath(Agent* a,
       key = getKey(t, m);
       auto itr2 = table.find(key);
       if (itr2 == table.end()) {
-        table.emplace(key, new AN { m, true, t, 100000, n });
+        table.emplace(key, new AN_OLD { m, true, t, 100000, n });
       }
       l = table.at(key);
       if (!l->open) continue;

@@ -104,7 +104,7 @@ void PD::setStartGoal() {
   starts = endpoints;
 }
 
-Paths PD::getStartGoal(int num) {
+Paths PD::getRandomStartGoal(int num) {
   if (num > nodes.size()) {
     std::cout << "error@PD::getStartGoal, over node size, "
               << num << "\n";

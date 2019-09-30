@@ -279,14 +279,14 @@ void CBS::calcCost(CTNode* node, Agents& block) {
 
 Constraints CBS::valid(CTNode* node, Agents& block) {
   Paths paths = node->paths;
-  int maxLength = getMaxLengthPaths(node->paths);
+  int maxLength = node->paths[0].size();
   Constraints constraints = {};
   std::vector<int> ids;
   Node* v;
   Agent *a, *b;
   int i, j;
 
-  for (int t = 0; t < maxLength; ++t) {
+  for (int t = 1; t < maxLength; ++t) {
     for (int _i = 0; _i < block.size(); ++_i) {
       a = block[_i];
       auto itr1 = std::find_if(A.begin(), A.end(),
@@ -321,7 +321,6 @@ Constraints CBS::valid(CTNode* node, Agents& block) {
       }
 
       // check intersection
-      if (t == 0) continue;
       auto itr3 = paths.begin() + i;
       auto itr4 = std::find_if(itr3 + 1, paths.end(),
                                [t, itr3](Nodes path) {
@@ -337,14 +336,8 @@ Constraints CBS::valid(CTNode* node, Agents& block) {
         Conflict* c2 = new Conflict { A[j], t, (*itr4)[t], (*itr4)[t-1], false, "" };
         setCKey(c1);
         setCKey(c2);
-
-        // checking duplication
-        if (!isDuplicatedConflict(knownConstraint, c1)) {
-          constraints.push_back({ c1 });
-        }
-        if (!isDuplicatedConflict(knownConstraint, c2)) {
-          constraints.push_back({ c2 });
-        }
+        constraints.push_back({ c1 });
+        constraints.push_back({ c2 });
         return constraints;
       }
     }
@@ -369,19 +362,23 @@ void CBS::formalizePathAgents(CTNode* node, Agents& block) {
 Nodes CBS::AstarSearch(Agent* a, CTNode* node) {
   Constraint constraints = getConstraintsForAgent(node, a);
 
-  Nodes path, tmpPath;  // return
-  Node* s = a->getNode();
-  Node* g = a->getGoal();
+  Node* _s = a->getNode();
+  Node* _g = a->getGoal();
 
-  // fast implementation
-  std::string cKey = getCKey(s, g, constraints);
+  // ==== fast implementation ====
+  // constraint free
+  if (constraints.empty()) return G->getPath(_s, _g);
+
+  // know path
+  std::string cKey = getCKey(_s, _g, constraints);
   auto itrK = knownPaths.find(cKey);
   if (itrK != knownPaths.end()) {
-    path = itrK->second;
-    if (path.empty()) node->valid = false;
-    return path;
+    if (itrK->second.empty()) node->valid = false;
+    return itrK->second;
   }
-  std::string dKey = cKey;  // previously computed path
+
+  // previously computed path
+  std::string dKey = cKey;
   if (!constraints.empty()) {
     while (*(dKey.end()-1) != '-') dKey.erase(dKey.end()-1);
     dKey.erase(dKey.end()-1);
@@ -392,56 +389,47 @@ Nodes CBS::AstarSearch(Agent* a, CTNode* node) {
     dPath = itrK->second;
   }
 
-  // fast implementation
-  tmpPath = G->getPath(s, g);
-  if (constraints.empty()) return tmpPath;
-  tmpPath.clear();
+  // goal condition
+  bool existGoalConstraint = false;
+  int timeGoalConstraint = 0;
+  for (auto c: constraints) {
+    if (c->onNode && c->v == _g && c->t > timeGoalConstraint) {
+      existGoalConstraint = true;
+      timeGoalConstraint = c->t;
+    }
+  }
+  // =============================
 
-  int t = 0;
-  int f = 0;
-  Nodes C;  // candidates
+  Nodes path, tmpPath, C;
+  int f, g;
   std::string key;
-  AN *l, *n;
-  std::unordered_set<std::string> OPEN;
-  std::unordered_map<std::string, AN*> table;
-
-  l = new AN { s, true, 0, 0, nullptr };
-  key = getKey(t, s);
-  table.emplace(key, l);
-  OPEN = { key };
-
   bool invalid = true;  // success or not
+
+  boost::heap::fibonacci_heap<Fib_AN> OPEN;
+  std::unordered_map<std::string, boost::heap::fibonacci_heap<Fib_AN>::handle_type> SEARCHED;
+  std::unordered_set<std::string> CLOSE;  // key
+  AN* n = new AN { _s, 0, pathDist(_s, _g), nullptr };
+  auto handle = OPEN.push(Fib_AN(n));
+  key = getKey(n);
+  SEARCHED.emplace(key, handle);
+
   while (!OPEN.empty()) {
     // argmin
-    auto itr1 = std::min_element(OPEN.begin(), OPEN.end(),
-                                 [&table](std::string a, std::string b)
-                                 { auto eleA = table.at(a);
-                                   auto eleB = table.at(b);
-                                   if (eleA->f == eleB->f) {
-                                     return eleA->t > eleB->t;
-                                   }
-                                   return eleA->f < eleB->f; });
-    key = *itr1;
-    n = table.at(key);
+    n = OPEN.top().node;
 
-    // check goal
-    if (n->v == g) {
-      auto check = std::find_if(constraints.begin(), constraints.end(),
-                                [n] (Conflict* c) {
-                                  return c->onNode
-                                    && (c->v == n->v)
-                                    && (c->t >= n->t); });
-      if (check == constraints.end()) {
+    // check goal condtion
+    if (n->v == _g) {
+      if (!existGoalConstraint || timeGoalConstraint < n->g) {
         invalid = false;
         break;
       }
     }
 
-    // fast implementation
-    tmpPath = G->getPath(n->v, g);
-    if (validShorcut(a, n, g, constraints, tmpPath)) {
+    // ==== fast implementation ====
+    tmpPath = G->getPath(n->v, _g);
+    if (validShorcut(a, n, _g, constraints, tmpPath)) {
       for (int i = 1; i < tmpPath.size(); ++i) {
-        n = new AN { tmpPath[i], false, 0, 0, n };
+        n = new AN { tmpPath[i], 0, 0, n };
       }
       invalid = false;
       break;
@@ -449,65 +437,76 @@ Nodes CBS::AstarSearch(Agent* a, CTNode* node) {
     tmpPath.clear();
 
     // encount previously explored path
-    if (!dPath.empty() && n->t <= dPath.size() - 1 && n->v == dPath[n->t]) {
+    if (!dPath.empty() && n->g <= dPath.size() - 1 && n->v == dPath[n->g]) {
       tmpPath = dPath;
-      for (int i = 0; i < n->t; ++i) tmpPath.erase(tmpPath.begin());
-      if (validShorcut(a, n, g, constraints, tmpPath)) {
+      for (int i = 0; i < n->g; ++i) tmpPath.erase(tmpPath.begin());
+      if (validShorcut(a, n, _g, constraints, tmpPath)) {
         for (int i = 1; i < tmpPath.size(); ++i) {
-          n = new AN { tmpPath[i], false, 0, 0, n };
+          n = new AN { tmpPath[i], 0, 0, n };
         }
         invalid = false;
         break;
       }
     }
+    // =============================
 
     // update list
-    n->open = false;
-    OPEN.erase(itr1);
+    OPEN.pop();
+    CLOSE.emplace(getKey(n));
 
     // search neighbor
     C = G->neighbor(n->v);
     C.push_back(n->v);
 
     for (auto m : C) {
+      g = n->g + 1;
+      key = getKey(g, m);
+      if (CLOSE.find(key) != CLOSE.end()) continue;
+
       // check constraints
-      t = n->t + 1;
-      // invalid or not
       auto constraint = std::find_if(constraints.begin(), constraints.end(),
-                                     [a, t, m, n](Conflict* c) {
+                                     [a, g, m, n] (Conflict* c) {
                                        if (c->a != a) return false;
-                                       if (c->t != t) return false;
+                                       if (c->t != g) return false;
                                        if (c->onNode) return c->v == m;
                                        return c->v == m && c->u == n->v;
                                      });
       if (constraint != constraints.end()) continue;
+      f = g + pathDist(m, _g);
 
-      key = getKey(t, m);
-      auto itr2 = table.find(key);
-      if (itr2 == table.end()) {
-        table.emplace(key, new AN { m, true, t, 1000000, n });
+      // ==== fast implementation ====
+      if (!dPath.empty() && g <= dPath.size() - 1 && m == dPath[g]) {
+        f = dPath.size() - 1;
       }
-      l = table.at(key);
-      if (!l->open) continue;
+      // if (existGoalConstraint) {
+      //   f = pathDist(m, _g) + timeGoalConstraint;
+      // }
+      // =============================
 
-      f = t + pathDist(m, g);
-      if (l->f > f) {
-        l->t = t;
-        l->f = f;
-        l->p = n;
+      auto itrS = SEARCHED.find(key);
+      if (itrS == SEARCHED.end()) {  // new node
+        AN* l = new AN { m, g, f, n };
+        auto handle = OPEN.push(Fib_AN(l));
+        SEARCHED.emplace(key, handle);
+      } else {
+        auto handle = itrS->second;
+        AN* l = (*handle).node;
+        if (l->f > f) {
+          l->g = g;
+          l->f = f;
+          l->p = n;
+        }
+        OPEN.increase(handle);
       }
-
-      OPEN.insert(key);
     }
   }
 
   // back tracking
   if (!invalid) {  // check failed or not
-    while (n->p) {
+    while (n != nullptr) {
       path.push_back(n->v);
       n = n->p;
     }
-    path.push_back(s);
     std::reverse(path.begin(), path.end());
   } else {
     node->valid = false;
@@ -519,22 +518,22 @@ Nodes CBS::AstarSearch(Agent* a, CTNode* node) {
 
 Constraint CBS::getConstraints(CTNode* ctNode) {
   Constraint constraints = {};
-  if (ctNode->p == nullptr) return constraints;  // root
-  while (ctNode->p != nullptr) {
-    for (auto c : ctNode->c) constraints.push_back(c);
-    ctNode = ctNode->p;
+  CTNode* p = ctNode;
+  while (p != nullptr) {
+    for (auto c : p->c) constraints.push_back(c);
+    p = p->p;
   }
   return constraints;
 }
 
 Constraint CBS::getConstraintsForAgent(CTNode* ctNode, Agent* a) {
-  Constraint constraints;
-  if (ctNode->p == nullptr) return constraints;  // root
-  while (ctNode->p != nullptr) {
-    for (auto c : ctNode->c) {
+  Constraint constraints = {};
+  CTNode* p = ctNode;
+  while (p != nullptr) {
+    for (auto c : p->c) {
       if (c->a == a) constraints.push_back(c);
     }
-    ctNode = ctNode->p;
+    p = p->p;
   }
   return constraints;
 }
@@ -598,24 +597,24 @@ bool CBS::isDuplicatedCTNode(CTNode* newCT, std::vector<CTNode*> &cts) {
   return false;
 }
 
-bool CBS::validShorcut(Agent* a, AN* n, Node* g,
+bool CBS::validShorcut(Agent* a, AN* n, Node* _g,
                        Constraint &constraints,
                        Nodes &tmpPath) {
   auto itrC = std::find_if(constraints.begin(), constraints.end(),
-                           [a, n, g, &tmpPath] (Conflict* c) {
+                           [a, n, _g, &tmpPath] (Conflict* c) {
                              if (c->a != a) return false;
-                             if (c->t < n->t) return false;
+                             if (c->t < n->g) return false;
                              if (c->onNode) {
-                               if (c->t > tmpPath.size() + n->t - 1) {
-                                 if (c->v == g) return true;
+                               if (c->t > tmpPath.size() + n->g - 1) {
+                                 if (c->v == _g) return true;
                                } else {
-                                 if (c->v == tmpPath[c->t - n->t]) return true;
+                                 if (c->v == tmpPath[c->t - n->g]) return true;
                                }
                              } else {
                                if (c->t <= 0
-                                   || c->t > tmpPath.size() + n->t) return false;
-                               if (c->v == tmpPath[c->t - n->t]
-                                   && c->u == tmpPath[c->t - n->t - 1])
+                                   || c->t > tmpPath.size() + n->g) return false;
+                               if (c->v == tmpPath[c->t - n->g]
+                                   && c->u == tmpPath[c->t - n->g - 1])
                                  return true;
                              }
                              return false;

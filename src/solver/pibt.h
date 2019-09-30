@@ -13,7 +13,7 @@ protected:
   void init();
   void allocate();
 
-  void updatePriority();
+  virtual void updatePriority();
   Nodes createCandidates(Agent* a, Nodes CLOSE_NODE);
   Nodes createCandidates(Agent* a, Nodes CLOSE_NODE, Node* tmp);
   bool priorityInheritance(Agent* a,

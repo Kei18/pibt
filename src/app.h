@@ -18,6 +18,7 @@
 #include "problem/mapf.h"
 #include "problem/mapd.h"
 #include "problem/imapf.h"
+#include "problem/imapf_fair.h"
 
 #include "solver/pibt.h"
 #include "solver/winpibt.h"
@@ -69,6 +70,8 @@ Problem* run(int argc, char *argv[])
      10000,            // timesteplimit
      10,               // task number
      0.1,              // task frequency
+     false,            // scenario
+     "",               // scenario file
      0,                // seed
      false,            // save log
      true,             // print log
@@ -112,7 +115,8 @@ Problem* run(int argc, char *argv[])
    ************************/
   Graph* G = nullptr;
   if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPF ||
-      envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF) {
+      envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF ||
+      envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF_FAIR) {
     G = new SimpleGrid(envConfig->field, MT_PG);
   } else if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_MAPD) {
     G = new PD(envConfig->field, MT_PG);
@@ -128,7 +132,16 @@ Problem* run(int argc, char *argv[])
    * agent definition
    ************************/
   Agents A;
-  auto points = G->getStartGoal(envConfig->agentnum);
+  Paths points;
+  if (envConfig->scenario) {
+#ifdef OF
+    std::cout << "use scenario : " << envConfig->scenariofile << "\n";
+#endif
+    setScenario(envConfig->scenariofile, points, G);
+  } else {
+    points = G->getRandomStartGoal(envConfig->agentnum);
+  }
+
   for (int i = 0; i < envConfig->agentnum; ++i) {
     Agent* a = new Agent(points[i][0]);
     A.push_back(a);
@@ -152,6 +165,8 @@ Problem* run(int argc, char *argv[])
   } else if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF ||
              envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF_STATION) {
     P = new IMAPF(G, A, envConfig->tasknum, MT_PG);
+  } else if (envConfig->PTYPE == Param::PROBLEM_TYPE::P_IMAPF_FAIR) {
+    P = new IMAPF_FAIR(G, A, envConfig->tasknum, MT_PG);
   } else {
     std::cout << "error@run, problem is not defined" << "\n";
     std::exit(1);
@@ -264,6 +279,9 @@ Problem* run(int argc, char *argv[])
    * summarize results
    ************************/
   std::string result = "[setting] seed:" + std::to_string(envConfig->seed) + "\n";
+  if (envConfig->scenario) {
+    result += "[setting] scenario: " + envConfig->scenariofile + "\n";
+  }
   result += solver->logStr();
   if (envConfig->log) {
     std::string outfile;

@@ -19,7 +19,7 @@ You need to install openFrameworks beforehand and export `OF_ROOT` of your envir
 export OF_ROOT={your openFrameworks directory}
 ```
 
-(If you do not require the visualization, you do not have to.)
+The latest implementation relies on [boost](https://www.boost.org/).
 
 ## Usage
 At first, you must prepare param file.
@@ -44,6 +44,7 @@ This software is released under the MIT License, see [LICENSE.txt](LICENCE.txt).
 ## Others
 - Maps: https://www.movingai.com/benchmarks/grids.html
 - Images: https://www.irasutoya.com
+- Scenario: https://www.movingai.com/benchmarks/mapf/index.html
 
 ## Author
 [Keisuke Okumura](https://github.com/Kei18)
