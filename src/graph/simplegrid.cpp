@@ -52,6 +52,10 @@ void SimpleGrid::setBasicParams() {
 
   // read fundamental graph params
   while (getline(file, line)) {
+
+    // for CRLF coding
+    if (*(line.end()-1) == 0x0d) line.pop_back();
+
     if (std::regex_match(line, results, r_height)) {
       h = std::stoi(results[1].str());
     }
@@ -86,6 +90,9 @@ void SimpleGrid::createNodes() {
   char s;
 
   while (getline(file, line)) {
+    // for CRLF coding
+    if (*(line.end()-1) == 0x0d) line.pop_back();
+
     if (mapStart) {
       // width check
       if (line.size() != w) {
@@ -144,6 +151,9 @@ void SimpleGrid::createEdges() {
   std::regex r_right = std::regex(R"([\.obehikln])");
 
   while (getline(file, line)) {
+    // for CRLF coding
+    if (*(line.end()-1) == 0x0d) line.pop_back();
+
     if (mapStart) {
       for (int i = 0; i < w; ++i) {
         id = j * w + i;
