@@ -59,7 +59,10 @@ void Solver::solveEnd() {
           cands.push_back(paths[i][t-1]);
           if (!inArray(paths[i][t], cands)) {
             std::cout << "error@Solver, paths is not connected at t=" << t << ", "
-                      << "agent " << i << std::endl;
+                      << "agent " << i
+                      << ", from " << paths[i][t-1]->getId()
+                      << ", to " << paths[i][t]->getId()
+                      << std::endl;
             std::exit(1);
           }
         }

@@ -556,6 +556,12 @@ void PPS::SWAP_PRIMITIVES(S* s) {
   Agent* aH = s->agents[0];
   Agent* aL = s->agents[1];
 
+  if (inArray(aH, M) || inArray(aL, M)) {
+    M.push_back(aH);
+    M.push_back(aL);
+    return;
+  }
+
   switch (s->phase) {
   case SWAPPHASE::EVAC_H:
     aH->setNode(s->evacH);
