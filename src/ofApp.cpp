@@ -13,7 +13,7 @@ static const int SCREEN_X_BUFFER = 50;
 static const int WINDOW_X_BUFFER = 25;
 static const int WINDOW_Y_TOP_BUFFER = 75;
 static const int WINDOW_Y_BOTTOM_BUFFER = 25;
-static const std::string FONT = "/Library/Fonts/PTMono.ttc";
+static const std::string FONT = "MuseoModerno-VariableFont_wght.ttf";
 
 // for sushi mode
 static const std::vector<std::string> SUSHINETA =

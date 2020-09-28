@@ -15,12 +15,14 @@ Agent::Agent() : id(cntId) {
   g = nullptr;
   tau = nullptr;
   updated = false;
+  beforeNode = nullptr;
 }
 
 Agent::Agent(Node* _v) : id(cntId) {
   ++cntId;
   g = nullptr;
   tau = nullptr;
+  v = nullptr;
   setNode(_v);
   updated = false;
 }

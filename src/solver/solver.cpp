@@ -37,6 +37,45 @@ void Solver::solveEnd() {
   endT = std::chrono::system_clock::now();
   elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>
     (endT-startT).count();
+
+  // check consistency
+  // 1. create path
+  std::vector<Nodes> paths;
+  for (auto a : A) {
+    Nodes path;
+    for (auto s : a->getHist()) path.push_back(s->v);
+    paths.push_back(path);
+  }
+  // 2. check continuity, vertex/swap conflict
+  for (int i = 0; i < A.size(); ++i) {
+    for (int j = i + 1; j < A.size(); ++j) {
+      if (paths[i].size() != paths[j].size()) {
+        std::cout << "error@Solver, path size is different" << std::endl;
+        std::exit(1);
+      }
+      for (int t = 0; t < paths[i].size(); ++t) {
+        if (t > 0) {
+          auto cands = paths[i][t-1]->getNeighbor();
+          cands.push_back(paths[i][t-1]);
+          if (!inArray(paths[i][t], cands)) {
+            std::cout << "error@Solver, paths is not connected at t=" << t << ", "
+                      << "agent " << i << std::endl;
+            std::exit(1);
+          }
+        }
+        if (paths[i][t] == paths[j][t]) {
+          std::cout << "error@Solver, vertex conflict at t=" << t << " between "
+                    << i << " and " << j << std::endl;
+          std::exit(1);
+        }
+        if (t > 0 && paths[i][t] == paths[j][t-1] && paths[i][t-1] == paths[j][t]) {
+          std::cout << "error@Solver, swap conflict at t=" << t << " between "
+                    << i << " and " << j << std::endl;
+          std::exit(1);
+        }
+      }
+    }
+  }
 }
 
 void Solver::WarshallFloyd() {
