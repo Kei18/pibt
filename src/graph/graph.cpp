@@ -150,6 +150,7 @@ Nodes Graph::getPath(Node* _s, Node* _g,
     C = neighbor(n->v);
 
     for (auto m : C) {
+      if (prohibited && inArray(m, prohibitedNodes)) continue;
       if (CLOSE.find(m->getId()) != CLOSE.end()) continue;
       f = n->g + 1 + dist(m, _g);
 

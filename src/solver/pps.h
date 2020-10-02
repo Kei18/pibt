@@ -43,6 +43,7 @@ private:
   Agents M;  // moved agents
   Agents U;  // goal agents
   Nodes L;   // reserved nodes
+  Agents H;  // previous pusher
   bool status;  // continue or not
 
   Nodes goals;  // final goal
@@ -57,18 +58,15 @@ private:
 
   RES PUSH(Agent* c, bool swap);
   RES PUSH(Agent* c, Nodes &T, bool swap);
-  RES PUSH(Agent* c, Agents &H, bool swap);
-  RES PUSH(Agent* c, Agents &H, Nodes &T, bool swap);
   RES PUSH(S* s);
 
-  RES FEASIBLE(Agent* c, Nodes &pi, Agents& H, Nodes& T, bool swap);
+  RES FEASIBLE(Agent* c, Nodes &pi, Nodes& T, bool swap);
   RES FEASIBLE(S* s, Nodes &pi);
 
   Nodes SHORTEST_PATH(Node* s, Node* g);
   Nodes SHORTEST_PATH(Agent* c, Node* g);
-  Nodes SHORTEST_PATH(Agent* c, Node* g, Agents& H);
   Nodes SHORTEST_PATH(Node* s, Node* g, Nodes prohibited);
-  Nodes SHORTEST_PATH(Agent* c, Node* g, Agents& H, Nodes& T);
+  Nodes SHORTEST_PATH(Agent* c, Node* g, Nodes& T);
 
   bool DEPEND(Nodes piA, Nodes piB);
 

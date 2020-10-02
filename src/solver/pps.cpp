@@ -63,6 +63,7 @@ void PPS::update() {
   M.clear();  // l.3
 
   for (auto s : swapers) {  // l.4
+    H.clear();
     if (CHECK_SWAPER(s) == CHECK::VALID) {  // check valid s
       if (SWAP(s) == RES::FAIL) {  // l.5
         status = false;
@@ -72,6 +73,7 @@ void PPS::update() {
   }
 
   for (auto p : A) {  // l.6, push
+    H.clear();
     if (CHECK_PUSHER(p) == CHECK::VALID) {
       PUSH(p, false);  // l.8
     }
@@ -113,22 +115,11 @@ void PPS::update() {
 
 // individual agent push
 RES PPS::PUSH(Agent* c, bool swap) {
-  Agents H = {};
   Nodes T = {};
-  return PUSH(c, H, T, swap);
-}
-
-RES PPS::PUSH(Agent* c, Agents& H, bool swap) {
-  Nodes T = {};
-  return PUSH(c, H, T, swap);
+  return PUSH(c, T, swap);
 }
 
 RES PPS::PUSH(Agent* c, Nodes &T, bool swap) {
-  Agents H = {};
-  return PUSH(c, H, T, swap);
-}
-
-RES PPS::PUSH(Agent* c, Agents &H, Nodes &T, bool swap) {
   if (inArray(c, H)) return RES::FAIL;   // l.1
   if (inArray(c, M)) return RES::PAUSE;  // l.2
   if (swap == false && inArray(c, U)) return PAUSE;  // l.3
@@ -147,12 +138,12 @@ RES PPS::PUSH(Agent* c, Agents &H, Nodes &T, bool swap) {
       std::exit(1);
     }
     pi = SHORTEST_PATH(c->getNode(), c->getGoal(), T);  // l.6
-    attempt = FEASIBLE(c, pi, H, T, swap);     // l.16
+    attempt = FEASIBLE(c, pi, T, swap);     // l.16
 
   } else {
 
-    pi = SHORTEST_PATH(c, c->getGoal(), H, T); // l.8
-    attempt = FEASIBLE(c, pi, H, T, swap);     // l.9
+    pi = SHORTEST_PATH(c, c->getGoal(), T); // l.8
+    attempt = FEASIBLE(c, pi, T, swap);     // l.9
 
     // exclude swap detected agents
     if (attempt == RES::FAIL && !inArray(c, pusherToSwaper)) {  // l.12
@@ -164,8 +155,8 @@ RES PPS::PUSH(Agent* c, Agents &H, Nodes &T, bool swap) {
                                    [this, g] (Node* e1, Node* e2)
                                    { return this->pathDist(e1, g)
                                        < this->pathDist(e2, g); });  // l.14
-        pi = SHORTEST_PATH(c, e, H, T);  // l.15
-        attempt = FEASIBLE(c, pi, H, T, swap);  // l.16
+        pi = SHORTEST_PATH(c, e, T);  // l.15
+        attempt = FEASIBLE(c, pi, T, swap);  // l.16
       }
     }
   }
@@ -212,7 +203,7 @@ RES PPS::PUSH(S* s) {
   return attempt;  // l.19
 }
 
-RES PPS::FEASIBLE(Agent* c, Nodes &pi, Agents &H, Nodes &T, bool swap) {
+RES PPS::FEASIBLE(Agent* c, Nodes &pi, Nodes &T, bool swap) {
   if (pi.size() < 2) return RES::FAIL;  // l.1
   Node* v = pi[1];  // l.2
 
@@ -262,7 +253,7 @@ RES PPS::FEASIBLE(Agent* c, Nodes &pi, Agents &H, Nodes &T, bool swap) {
 
   a = *itrA;
   H.push_back(c);
-  return PUSH(a, H, T, swap);  // l.24, recursive push
+  return PUSH(a, T, swap);  // l.24, recursive push
 }
 
 RES PPS::FEASIBLE(S* s, Nodes &pi) {
@@ -287,8 +278,9 @@ RES PPS::FEASIBLE(S* s, Nodes &pi) {
   }
 
   a = *itrA;
-  Agents H = { s->agents[0], s->agents[1] };
-  return PUSH(a, H, true);  // l.24, recursive push
+  H.push_back(s->agents[0]);
+  H.push_back(s->agents[1]);
+  return PUSH(a, true);  // l.24, recursive push
 }
 
 CHECK PPS::CHECK_PUSHER(Agent* a) {
@@ -381,10 +373,6 @@ Nodes PPS::SHORTEST_PATH(Node* s, Node* g, Nodes prohibited) {
 }
 
 Nodes PPS::SHORTEST_PATH(Agent* c, Node* g) {
-  return G->getPath(c->getNode(), g);
-}
-
-Nodes PPS::SHORTEST_PATH(Agent* c, Node* g, Agents& H) {
   if (H.empty()) return G->getPath(c->getNode(), g);
 
   Nodes prohibited;
@@ -392,7 +380,7 @@ Nodes PPS::SHORTEST_PATH(Agent* c, Node* g, Agents& H) {
   return G->getPath(c->getNode(), g, prohibited);
 }
 
-Nodes PPS::SHORTEST_PATH(Agent* c, Node* g, Agents& H, Nodes& T) {
+Nodes PPS::SHORTEST_PATH(Agent* c, Node* g, Nodes& T) {
   if (H.empty()) return G->getPath(c->getNode(), g, T);
 
   Nodes prohibited = T;
@@ -568,6 +556,12 @@ void PPS::SWAP_PRIMITIVES(S* s) {
   Agent* aH = s->agents[0];
   Agent* aL = s->agents[1];
 
+  if (inArray(aH, M) || inArray(aL, M)) {
+    M.push_back(aH);
+    M.push_back(aL);
+    return;
+  }
+
   switch (s->phase) {
   case SWAPPHASE::EVAC_H:
     aH->setNode(s->evacH);
@@ -709,7 +703,7 @@ bool PPS::CLEAR(S* s) {
   }
 
   // case 2. try push
-  if (evacH && !evacL) {
+  if (!evacL) {
     for (auto v : neighbor) {
       if (inArray(v, L)) continue;
       if (v == aLPos) continue;
@@ -717,9 +711,10 @@ bool PPS::CLEAR(S* s) {
 
       Agent* a = *std::find_if(A.begin(), A.end(),
                                [v](Agent* a) { return a->getNode() == v; });
-      Agents H = { aH, aL };
+      H.push_back(aH);
+      H.push_back(aL);
       Nodes T = { evacH };
-      RES attempt = PUSH(a, H, T, true);
+      RES attempt = PUSH(a, T, true);
 
       if (attempt != RES::SUCCESS) continue;
 

@@ -178,14 +178,14 @@ void SimpleGrid::createEdges() {
         if (std::regex_match(s, results, r_up)) {
           if (existNode(id - w)) neighbor.push_back(getNode(id - w));
         }
-        if (std::regex_match(s, results, r_down)) {
-          if (existNode(id + w)) neighbor.push_back(getNode(id + w));
-        }
         if (i != 0 && std::regex_match(s, results, r_left)) {
           if (existNode(id - 1)) neighbor.push_back(getNode(id - 1));
         }
         if (i != w - 1 && std::regex_match(s, results, r_right)) {
           if (existNode(id + 1)) neighbor.push_back(getNode(id + 1));
+        }
+        if (std::regex_match(s, results, r_down)) {
+          if (existNode(id + w)) neighbor.push_back(getNode(id + w));
         }
         v->setNeighbor(neighbor);
       }

@@ -102,3 +102,4 @@ param.sh
 !/scen/.gitignore
 /log/*
 !/log/.gitignore
+/sh/
