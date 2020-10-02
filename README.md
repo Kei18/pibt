@@ -3,6 +3,14 @@ Simulator of Iterative Multi-agent Path Finding
 Let multiple agents move smoothly.
 See [the project page](https://kei18.github.io/pibt).
 
+__IMPORTANT NOTES__
+- In v1.0-v1.2, the PPS implementation includes bugs. Use the latest (≥v1.3).
+You can check the PPS results [here](/others/pps-latest-result.md).
+The results are not so different from the PIBT paper.
+- PIBT and other solvers (W/HCA*, E/CBS) have [a new implementation](https://kei18.github.io/mapf-IR).
+  The new one is much cleaner.
+  *I strongly recommend using the new one instead of this repo.*
+
 ## Demo
 Multi-agent Path Finding
 
@@ -44,7 +52,8 @@ This software is released under the MIT License, see [LICENSE.txt](LICENCE.txt).
 ## Others
 - Maps: https://www.movingai.com/benchmarks/grids.html
 - Images: https://www.irasutoya.com
+- Font: https://fonts.google.com/
 - Scenario: https://www.movingai.com/benchmarks/mapf/index.html
 
 ## Author
-[Keisuke Okumura](https://github.com/Kei18)
+[Keisuke Okumura](https://kei18.github.io) is currently a Ph.D. candidate at Tokyo Institute of Technology, working on multiple moving agents.
