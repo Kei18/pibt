@@ -8,6 +8,7 @@ Parallel Push & Swap (PPS) results with v1.3 implementation
 ## 8x8
 - timesteplimit=500
 - random starts/goals, 100 instances, seed: 0-99
+
 | agents |  success rate (%) | path (ave.) | runtime (ms) |
 | ---:  |  ---: | ---: | ---: |
 | 10 | 100 |  8.0 |  0 |
@@ -21,6 +22,7 @@ Parallel Push & Swap (PPS) results with v1.3 implementation
 ## lak105d
 - timesteplimit=1000
 - random starts/goals, 100 instances, seed: 0-99
+
 | agents |  success rate (%) | path (ave.) | runtime (ms) |
 | ---:  |  ---: | ---: | ---: |
 |  10 | 100 | 21.4 |   0 |
@@ -32,6 +34,7 @@ Parallel Push & Swap (PPS) results with v1.3 implementation
 ## arena
 - timesteplimit=1000
 - random starts/goals, 100 instances, seed: 0-99
+
 | agents |  success rate (%) | path (ave.) | runtime (ms) |
 | ---:  |  ---: | ---: | ---: |
 |  10 | 100 |  32.6 |    1 |
@@ -46,6 +49,7 @@ Parallel Push & Swap (PPS) results with v1.3 implementation
 ## ost003d
 - timesteplimit=1500
 - random starts/goals, 100 instances, seed: 0-99
+
 | agents |  success rate (%) | path (ave.) | runtime (ms) |
 | ---:  |  ---: | ---: | ---: |
 |  10 | 100 | 164.2 |    35 |
@@ -60,6 +64,7 @@ Parallel Push & Swap (PPS) results with v1.3 implementation
 ## random-32-32-20
 - timesteplimit=1000
 - MAPF benchmark, random-scenario: 1-25
+
 | agents |  success rate (%) | path (ave.) | runtime (ms) |
 | ---:  |  ---: | ---: | ---: |
 |  10 | 100 |  24.2 |    1 |
@@ -74,6 +79,7 @@ Parallel Push & Swap (PPS) results with v1.3 implementation
 ## warehouse-10-20-10-2-1
 - timesteplimit=1000
 - MAPF benchmark, random-scenario: 1-25
+
 | agents |  success rate (%) | path (ave.) | runtime (ms) |
 | ---:  |  ---: | ---: | ---: |
 |  10 | 100 |  68.1 |    1 |
