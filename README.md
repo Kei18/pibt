@@ -1,4 +1,4 @@
-Simulator of Iterative Multi-agent Path Finding
+PIBT
 ===
 Let multiple agents move smoothly.
 See [the project page](https://kei18.github.io/pibt).
