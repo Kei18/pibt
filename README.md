@@ -7,8 +7,7 @@ __IMPORTANT NOTES__
 - In v1.0-v1.2, the PPS implementation includes bugs. Use the latest (≥v1.3).
 You can check the PPS results [here](/others/pps-latest-result.md).
 The results are not so different from the PIBT paper.
-- PIBT and other solvers (W/HCA*, E/CBS) have [a new implementation](https://kei18.github.io/mapf-IR).
-  The new one is much cleaner.
+- [A new version (pibt2)](https://kei18.github.io/pibt2), substantially updated for a journal paper, is out.
   *I strongly recommend using the new one instead of this repo.*
 
 ## Demo
